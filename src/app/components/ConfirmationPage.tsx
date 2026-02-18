@@ -1,36 +1,103 @@
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { ChevronLeft } from 'lucide-react';
-import { getStreamFromUsn, mockStudentDatabase } from './LoginForm';
+import { mockStudentDatabase } from './LoginForm';
+import { useState } from 'react';
+import { projectId, publicAnonKey } from '/utils/supabase/info';
 
 export default function ConfirmationPage() {
   const navigate = useNavigate();
-  const { teamLeader, teamMembers, selectedGuide } = useAppContext();
+  const { teamLeader, teamMembers, selectedGuide, setTeamId } = useAppContext();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    // This is where the database would be updated with inTeam flags
-    // In production, this would be a Supabase transaction
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setError(null);
     
-    // Set inTeam flag for team leader
-    if (teamLeader && mockStudentDatabase[teamLeader.usn]) {
-      mockStudentDatabase[teamLeader.usn].inTeam = true;
-    }
-    
-    // Set inTeam flag for all team members
-    teamMembers.forEach(member => {
-      if (mockStudentDatabase[member.usn]) {
-        mockStudentDatabase[member.usn].inTeam = true;
+    try {
+      // Step 1: Generate team ID
+      const generateResponse = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-fdaa97b0/generate-team-id`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`,
+          },
+        }
+      );
+      
+      if (!generateResponse.ok) {
+        throw new Error('Failed to generate team ID');
       }
-    });
-    
-    console.log('Final submission:', {
-      teamLeader,
-      teamMembers,
-      selectedGuide,
-    });
-    
-    alert('Team and guide selection submitted successfully!');
-    navigate('/');
+      
+      const generateData = await generateResponse.json();
+      
+      if (!generateData.success) {
+        throw new Error(generateData.error || 'Failed to generate team ID');
+      }
+      
+      const generatedTeamId = generateData.teamId;
+      console.log('Generated Team ID:', generatedTeamId);
+      
+      // Step 2: Register team in database
+      const registerResponse = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-fdaa97b0/register-team`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`,
+          },
+          body: JSON.stringify({
+            teamId: generatedTeamId,
+            teamLeader,
+            teamMembers,
+            selectedGuide,
+          }),
+        }
+      );
+      
+      if (!registerResponse.ok) {
+        throw new Error('Failed to register team');
+      }
+      
+      const registerData = await registerResponse.json();
+      
+      if (!registerData.success) {
+        throw new Error(registerData.error || 'Failed to register team');
+      }
+      
+      // Update local mock database for demo purposes
+      if (teamLeader && mockStudentDatabase[teamLeader.usn]) {
+        mockStudentDatabase[teamLeader.usn].inTeam = true;
+      }
+      
+      teamMembers.forEach(member => {
+        if (mockStudentDatabase[member.usn]) {
+          mockStudentDatabase[member.usn].inTeam = true;
+        }
+      });
+      
+      // Store team ID in context
+      setTeamId(generatedTeamId);
+      
+      console.log('Team registered successfully:', {
+        teamId: generatedTeamId,
+        teamLeader,
+        teamMembers,
+        selectedGuide,
+      });
+      
+      // Navigate to application letter generation
+      navigate('/application');
+    } catch (err) {
+      console.error('Error during team submission:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Create an array with team leader and all members
@@ -88,11 +155,8 @@ export default function ConfirmationPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#171717]">
-                      phone no.
-                    </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[2px]">
-                      {selectedGuide.phone}
+                    <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#999999]">
+                      {selectedGuide.department}
                     </p>
                   </div>
                 </div>
@@ -129,7 +193,7 @@ export default function ConfirmationPage() {
                       stream
                     </p>
                     <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
-                      {getStreamFromUsn(member.usn || '') || member.stream || ''}
+                      {member.stream || 'Computer Science'}
                     </p>
                   </div>
                   <div>
@@ -150,11 +214,21 @@ export default function ConfirmationPage() {
         <div className="flex justify-end mt-[20px] sm:mt-[27px]">
           <button
             onClick={handleSubmit}
-            className="w-[111px] h-[30px] bg-black rounded-[10px] flex items-center justify-center font-['Cabin',sans-serif] font-normal text-[#e9e9e9] text-[24px] leading-[44px] hover:bg-gray-800 transition-colors"
+            disabled={isSubmitting}
+            className="w-[111px] h-[30px] bg-black rounded-[10px] flex items-center justify-center font-['Cabin',sans-serif] font-normal text-[#e9e9e9] text-[24px] leading-[44px] hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit
+            {isSubmitting ? '...' : 'Submit'}
           </button>
         </div>
+        
+        {/* Error Message */}
+        {error && (
+          <div className="mt-[10px] p-[12px] bg-red-50 border border-red-200 rounded-[10px]">
+            <p className="text-red-600 text-[13px] font-['Inter',sans-serif]">
+              <span className="font-semibold">Error:</span> {error}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

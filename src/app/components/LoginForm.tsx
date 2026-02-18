@@ -128,20 +128,22 @@ export default function LoginForm() {
     // Check if student exists in mock database (in production, this would be Supabase)
     const studentData = mockStudentDatabase[trimmedUSN];
 
-    // If the USN isn't in the mock database, still allow login for valid USNs.
-    // (We can't validate DOB/inTeam without a real backend record.)
-    if (studentData) {
-      // Verify DOB
-      if (studentData.dob !== password) {
-        setErrorMessage('Date of Birth does not match our records!');
-        return;
-      }
+    // Student MUST exist in database
+    if (!studentData) {
+      setErrorMessage('USN not found in database! Please contact administration if this is an error.');
+      return;
+    }
+    
+    // Verify DOB
+    if (studentData.dob !== password) {
+      setErrorMessage('Date of Birth does not match our records!');
+      return;
+    }
 
-      // Check if student is already in a team (would be checked in database in production)
-      if (studentData.inTeam) {
-        setErrorMessage('You are already part of a team!');
-        return;
-      }
+    // Check if student is already in a team (would be checked in database in production)
+    if (studentData.inTeam) {
+      setErrorMessage('You are already part of a team!');
+      return;
     }
     
     // Extract branch code and map to stream

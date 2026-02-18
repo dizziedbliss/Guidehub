@@ -11,7 +11,6 @@ export interface TeamMember {
 export interface Guide {
   name: string;
   email: string;
-  phone: string;
   department: string;
 }
 
@@ -22,6 +21,8 @@ interface AppContextType {
   setTeamMembers: (members: TeamMember[]) => void;
   selectedGuide: Guide | null;
   setSelectedGuide: (guide: Guide | null) => void;
+  teamId: string | null;
+  setTeamId: (id: string | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -30,6 +31,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [teamLeader, setTeamLeader] = useState<TeamMember | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
+  const [teamId, setTeamId] = useState<string | null>(null);
 
   return (
     <AppContext.Provider
@@ -40,6 +42,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTeamMembers,
         selectedGuide,
         setSelectedGuide,
+        teamId,
+        setTeamId,
       }}
     >
       {children}

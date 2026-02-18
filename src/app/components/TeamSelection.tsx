@@ -54,19 +54,23 @@ export default function TeamSelection() {
     // Check if student exists in mock database (in production, this would be Supabase)
     const studentData = mockStudentDatabase[trimmedUSN];
 
-    // If we have a record, validate DOB + inTeam; otherwise allow verify (no backend to check against).
-    if (studentData) {
-      if (studentData.dob !== tempDob) {
-        setErrorMessage('Date of Birth does not match our records!');
-        return;
-      }
+    // Student MUST exist in database
+    if (!studentData) {
+      setErrorMessage('USN not found in database! Please contact administration if this is an error.');
+      return;
+    }
+    
+    // Verify DOB
+    if (studentData.dob !== tempDob) {
+      setErrorMessage('Date of Birth does not match our records!');
+      return;
+    }
 
-      // Check if student is already in a team (database flag check)
-      // This check would be done via Supabase query in production
-      if (studentData.inTeam && editingIndex === null) {
-        setErrorMessage('This student is already part of a team!');
-        return;
-      }
+    // Check if student is already in a team (database flag check)
+    // This check would be done via Supabase query in production
+    if (studentData.inTeam && editingIndex === null) {
+      setErrorMessage('This student is already part of a team!');
+      return;
     }
     
     // Check if team leader is trying to add themselves

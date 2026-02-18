@@ -5,26 +5,26 @@ import { ChevronLeft, Search } from 'lucide-react';
 
 // Mock data for guides - In production, this would be fetched from Supabase
 const mockGuides: Guide[] = [
-  { name: 'Dr. Ramesh Iyer', email: 'ramesh.iyer@mce.edu', phone: '9876543210', department: 'Computer Science Engineering' },
-  { name: 'Dr. Kavita Rao', email: 'kavita.rao@mce.edu', phone: '9876543211', department: 'Artificial Intelligence and Machine Learning' },
-  { name: 'Dr. Anil Kumar', email: 'anil.kumar@mce.edu', phone: '9876543212', department: 'Electrical & Electronics Engineering' },
-  { name: 'Dr. Snehalatha', email: 'snehalatha@mce.edu', phone: '9876543213', department: 'Electronics & Communication Engineering' },
-  { name: 'Dr. Mohan Patil', email: 'mohan.patil@mce.edu', phone: '9876543214', department: 'Mechanical Engineering' },
-  { name: 'Dr. Vivek Sharma', email: 'vivek.sharma@mce.edu', phone: '9876543215', department: 'Civil Engineering' },
-  { name: 'Dr. Pradeep N', email: 'pradeep.n@mce.edu', phone: '9876543216', department: 'Robotics & AI Engineering' },
-  { name: 'Dr. Meenakshi Rao', email: 'meenakshi.rao@mce.edu', phone: '9876543217', department: 'VLSI Engineering' },
-  { name: 'Dr. Sunil Bhat', email: 'sunil.bhat@mce.edu', phone: '9876543218', department: 'Computer Science & Business System' },
-  { name: 'Dr. Arpita Jain', email: 'arpita.jain@mce.edu', phone: '9876543219', department: 'Artificial Intelligence and Machine Learning' },
-  { name: 'Dr. Kiran Hegde', email: 'kiran.hegde@mce.edu', phone: '9876543220', department: 'Physics' },
-  { name: 'Dr. Lakshmi N', email: 'lakshmi.n@mce.edu', phone: '9876543221', department: 'Chemistry' },
-  { name: 'Dr. Deepa Menon', email: 'deepa.menon@mce.edu', phone: '9876543222', department: 'Mathematics' },
-  { name: 'Dr. Rahul Verma', email: 'rahul.verma@mce.edu', phone: '9876543223', department: 'Physics' },
-  { name: 'Dr. Pooja Shetty', email: 'pooja.shetty@mce.edu', phone: '9876543224', department: 'Chemistry' },
-  { name: 'Dr. Gopal Rao', email: 'gopal.rao@mce.edu', phone: '9876543225', department: 'Mathematics' },
-  { name: 'Dr. Harish Kulkarni', email: 'harish.k@mce.edu', phone: '9876543226', department: 'Computer Science Engineering' },
-  { name: 'Dr. Neha Patil', email: 'neha.patil@mce.edu', phone: '9876543227', department: 'Artificial Intelligence and Machine Learning' },
-  { name: 'Dr. Shankar Iyer', email: 'shankar.iyer@mce.edu', phone: '9876543228', department: 'Electrical & Electronics Engineering' },
-  { name: 'Dr. Ritu Sharma', email: 'ritu.sharma@mce.edu', phone: '9876543229', department: 'Robotics & AI Engineering' },
+  { name: 'Dr. Ramesh Iyer', email: 'ramesh.iyer@mce.edu', department: 'Computer Science Engineering' },
+  { name: 'Dr. Kavita Rao', email: 'kavita.rao@mce.edu', department: 'Artificial Intelligence and Machine Learning' },
+  { name: 'Dr. Anil Kumar', email: 'anil.kumar@mce.edu', department: 'Electrical & Electronics Engineering' },
+  { name: 'Dr. Snehalatha', email: 'snehalatha@mce.edu', department: 'Electronics & Communication Engineering' },
+  { name: 'Dr. Mohan Patil', email: 'mohan.patil@mce.edu', department: 'Mechanical Engineering' },
+  { name: 'Dr. Vivek Sharma', email: 'vivek.sharma@mce.edu', department: 'Civil Engineering' },
+  { name: 'Dr. Pradeep N', email: 'pradeep.n@mce.edu', department: 'Robotics & AI Engineering' },
+  { name: 'Dr. Meenakshi Rao', email: 'meenakshi.rao@mce.edu', department: 'VLSI Engineering' },
+  { name: 'Dr. Sunil Bhat', email: 'sunil.bhat@mce.edu', department: 'Computer Science & Business System' },
+  { name: 'Dr. Arpita Jain', email: 'arpita.jain@mce.edu', department: 'Artificial Intelligence and Machine Learning' },
+  { name: 'Dr. Kiran Hegde', email: 'kiran.hegde@mce.edu', department: 'Physics' },
+  { name: 'Dr. Lakshmi N', email: 'lakshmi.n@mce.edu', department: 'Chemistry' },
+  { name: 'Dr. Deepa Menon', email: 'deepa.menon@mce.edu', department: 'Mathematics' },
+  { name: 'Dr. Rahul Verma', email: 'rahul.verma@mce.edu', department: 'Physics' },
+  { name: 'Dr. Pooja Shetty', email: 'pooja.shetty@mce.edu', department: 'Chemistry' },
+  { name: 'Dr. Gopal Rao', email: 'gopal.rao@mce.edu', department: 'Mathematics' },
+  { name: 'Dr. Harish Kulkarni', email: 'harish.k@mce.edu', department: 'Computer Science Engineering' },
+  { name: 'Dr. Neha Patil', email: 'neha.patil@mce.edu', department: 'Artificial Intelligence and Machine Learning' },
+  { name: 'Dr. Shankar Iyer', email: 'shankar.iyer@mce.edu', department: 'Electrical & Electronics Engineering' },
+  { name: 'Dr. Ritu Sharma', email: 'ritu.sharma@mce.edu', department: 'Robotics & AI Engineering' },
 ];
 
 const departments = [
@@ -169,14 +169,6 @@ export default function GuideSelection() {
                     </p>
                     <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px] break-words">
                       {guide.email}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#171717]">
-                      Phone No.
-                    </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
-                      {guide.phone}
                     </p>
                   </div>
                   <div>
