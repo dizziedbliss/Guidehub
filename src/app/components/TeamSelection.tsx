@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext, TeamMember } from '../context/AppContext';
 import { ChevronLeft, Pencil } from 'lucide-react';
-import { mockStudentDatabase, getStreamFromUsn } from './LoginForm';
+import { mockStudentDatabase, extractBranchCode, mapBranchToStream } from './LoginForm';
 
 // Validate USN format: 4MC{xx}{xx}{xxx}
 const validateUSN = (usn: string): boolean => {
@@ -51,22 +51,24 @@ export default function TeamSelection() {
       return;
     }
 
-    // Check if student exists in mock database (in production, this would be Supabase)
+    // Check if student exists in database and DOB matches
     const studentData = mockStudentDatabase[trimmedUSN];
-
-    // If we have a record, validate DOB + inTeam; otherwise allow verify (no backend to check against).
-    if (studentData) {
-      if (studentData.dob !== tempDob) {
-        setErrorMessage('Date of Birth does not match our records!');
-        return;
-      }
-
-      // Check if student is already in a team (database flag check)
-      // This check would be done via Supabase query in production
-      if (studentData.inTeam && editingIndex === null) {
-        setErrorMessage('This student is already part of a team!');
-        return;
-      }
+    
+    if (!studentData) {
+      setErrorMessage('Student not found! Please check the USN.');
+      return;
+    }
+    
+    if (studentData.dob !== tempDob) {
+      setErrorMessage('Date of Birth does not match our records!');
+      return;
+    }
+    
+    // Check if student is already in a team (database flag check)
+    // This check would be done via Supabase query in production
+    if (studentData.inTeam && editingIndex === null) {
+      setErrorMessage('This student is already part of a team!');
+      return;
     }
     
     // Check if team leader is trying to add themselves
@@ -85,18 +87,17 @@ export default function TeamSelection() {
       return;
     }
 
-    const stream = getStreamFromUsn(trimmedUSN);
-    if (!stream) {
-      setErrorMessage('Unsupported branch code in USN. Allowed: CS, CB, CI, EE, EC, VL, RB, ME, CV');
-      return;
-    }
+    const branchCode = extractBranchCode(trimmedUSN);
+    const stream = mapBranchToStream(branchCode);
+    
+    console.log('Member Debug:', { trimmedUSN, branchCode, stream });
 
     const verifiedMember: TeamMember = {
       usn: trimmedUSN,
       dob: tempDob,
-      name: studentData?.name ?? 'Team Member',
+      name: studentData.name,
       stream: stream,
-      section: studentData?.section ?? '',
+      section: studentData.section,
     };
 
     if (editingIndex !== null && editingIndex < verifiedMembers.length) {
@@ -147,7 +148,7 @@ export default function TeamSelection() {
     
     // Check for at least 2 different streams including team leader
     const allTeamMembers = teamLeader ? [teamLeader, ...validMembers] : validMembers;
-    const streams = new Set(allTeamMembers.map(m => m.stream).filter(Boolean));
+    const streams = new Set(allTeamMembers.map(m => m.stream).filter(s => s && s !== 'Unknown'));
     
     if (streams.size < 2) {
       setErrorMessage('Team must have members from at least 2 different streams! Available streams: Computer Science Engineering, Electronics Engineering, Mechanical Engineering, Civil Engineering');
