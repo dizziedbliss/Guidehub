@@ -3,64 +3,44 @@ import { useNavigate } from 'react-router';
 import { useAppContext, Guide } from '../context/AppContext';
 import { ChevronLeft, Search } from 'lucide-react';
 
-// Mock data for guides
+// Mock data for guides - In production, this would be fetched from Supabase
 const mockGuides: Guide[] = [
-  {
-    name: 'A Geetha Kiran',
-    email: 'agk@ms.mcehassan.ac.in',
-    phone: '1023981293',
-    department: 'Computer Science Engineering',
-  },
-  {
-    name: 'Dr. Rajesh Kumar',
-    email: 'rk@ms.mcehassan.ac.in',
-    phone: '9876543210',
-    department: 'Computer Science Engineering',
-  },
-  {
-    name: 'Prof. Anita Sharma',
-    email: 'as@ms.mcehassan.ac.in',
-    phone: '8765432109',
-    department: 'Computer Science Engineering',
-  },
-  {
-    name: 'Dr. Suresh Patil',
-    email: 'sp@ms.mcehassan.ac.in',
-    phone: '7654321098',
-    department: 'Artificial intelligence & Machine learning',
-  },
-  {
-    name: 'Prof. Lakshmi Devi',
-    email: 'ld@ms.mcehassan.ac.in',
-    phone: '6543210987',
-    department: 'Mechanical Engineering',
-  },
-  {
-    name: 'Dr. Vinay Reddy',
-    email: 'vr@ms.mcehassan.ac.in',
-    phone: '5432109876',
-    department: 'Electrical Engineering',
-  },
-  {
-    name: 'Dr. Priya Menon',
-    email: 'pm@ms.mcehassan.ac.in',
-    phone: '9988776655',
-    department: 'Artificial intelligence & Machine learning',
-  },
-  {
-    name: 'Prof. Arjun Nair',
-    email: 'an@ms.mcehassan.ac.in',
-    phone: '8877665544',
-    department: 'Computer Science Engineering',
-  },
+  { name: 'Dr. Ramesh Iyer', email: 'ramesh.iyer@mce.edu', phone: '9876543210', department: 'Computer Science Engineering' },
+  { name: 'Dr. Kavita Rao', email: 'kavita.rao@mce.edu', phone: '9876543211', department: 'Artificial Intelligence and Machine Learning' },
+  { name: 'Dr. Anil Kumar', email: 'anil.kumar@mce.edu', phone: '9876543212', department: 'Electrical & Electronics Engineering' },
+  { name: 'Dr. Snehalatha', email: 'snehalatha@mce.edu', phone: '9876543213', department: 'Electronics & Communication Engineering' },
+  { name: 'Dr. Mohan Patil', email: 'mohan.patil@mce.edu', phone: '9876543214', department: 'Mechanical Engineering' },
+  { name: 'Dr. Vivek Sharma', email: 'vivek.sharma@mce.edu', phone: '9876543215', department: 'Civil Engineering' },
+  { name: 'Dr. Pradeep N', email: 'pradeep.n@mce.edu', phone: '9876543216', department: 'Robotics & AI Engineering' },
+  { name: 'Dr. Meenakshi Rao', email: 'meenakshi.rao@mce.edu', phone: '9876543217', department: 'VLSI Engineering' },
+  { name: 'Dr. Sunil Bhat', email: 'sunil.bhat@mce.edu', phone: '9876543218', department: 'Computer Science & Business System' },
+  { name: 'Dr. Arpita Jain', email: 'arpita.jain@mce.edu', phone: '9876543219', department: 'Artificial Intelligence and Machine Learning' },
+  { name: 'Dr. Kiran Hegde', email: 'kiran.hegde@mce.edu', phone: '9876543220', department: 'Physics' },
+  { name: 'Dr. Lakshmi N', email: 'lakshmi.n@mce.edu', phone: '9876543221', department: 'Chemistry' },
+  { name: 'Dr. Deepa Menon', email: 'deepa.menon@mce.edu', phone: '9876543222', department: 'Mathematics' },
+  { name: 'Dr. Rahul Verma', email: 'rahul.verma@mce.edu', phone: '9876543223', department: 'Physics' },
+  { name: 'Dr. Pooja Shetty', email: 'pooja.shetty@mce.edu', phone: '9876543224', department: 'Chemistry' },
+  { name: 'Dr. Gopal Rao', email: 'gopal.rao@mce.edu', phone: '9876543225', department: 'Mathematics' },
+  { name: 'Dr. Harish Kulkarni', email: 'harish.k@mce.edu', phone: '9876543226', department: 'Computer Science Engineering' },
+  { name: 'Dr. Neha Patil', email: 'neha.patil@mce.edu', phone: '9876543227', department: 'Artificial Intelligence and Machine Learning' },
+  { name: 'Dr. Shankar Iyer', email: 'shankar.iyer@mce.edu', phone: '9876543228', department: 'Electrical & Electronics Engineering' },
+  { name: 'Dr. Ritu Sharma', email: 'ritu.sharma@mce.edu', phone: '9876543229', department: 'Robotics & AI Engineering' },
 ];
 
 const departments = [
   'All Departments',
   'Computer Science Engineering',
-  'Artificial intelligence & Machine learning',
+  'Computer Science & Business System',
+  'Artificial Intelligence and Machine Learning',
+  'Electrical & Electronics Engineering',
+  'Electronics & Communication Engineering',
+  'VLSI Engineering',
   'Mechanical Engineering',
-  'Electrical Engineering',
+  'Robotics & AI Engineering',
+  'Civil Engineering',
+  'Physics',
+  'Chemistry',
+  'Mathematics',
 ];
 
 export default function GuideSelection() {

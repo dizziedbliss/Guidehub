@@ -2,43 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext, TeamMember } from '../context/AppContext';
 import { ChevronLeft, Pencil } from 'lucide-react';
-
-// Mock names for random assignment
-const mockNames = ['John', 'Sarah', 'Mike', 'Emma', 'David', 'Lisa', 'Alex', 'Maria'];
-
-// Extract branch code from USN
-const extractBranchCode = (usn: string): string => {
-  if (!usn || usn.length < 8) return '';
-  return usn.substring(6, 8).toUpperCase();
-};
-
-// Map branch codes to streams
-const mapBranchToStream = (branchCode: string): string => {
-  const streamMap: { [key: string]: string } = {
-    'CS': 'Computer Science',
-    'CI': 'Computer Science', // AIML
-    'CB': 'Computer Science', // CS & Business
-    'EC': 'Electronics',
-    'EE': 'Electronics',
-    'VL': 'Electronics', // VLSI
-    'ME': 'Mechanical',
-    'RO': 'Mechanical', // Robotics
-    'CV': 'Civil',
-  };
-  
-  return streamMap[branchCode] || 'Unknown';
-};
-
-// Extract section from USN (last 3 digits -> section letter)
-const extractSection = (usn: string): string => {
-  if (!usn || usn.length < 11) return '';
-  const rollNumber = parseInt(usn.substring(8, 11));
-  
-  if (rollNumber <= 90) return 'A';
-  if (rollNumber <= 180) return 'B';
-  if (rollNumber <= 270) return 'C';
-  return 'O';
-};
+import { mockStudentDatabase, extractBranchCode, mapBranchToStream } from './LoginForm';
 
 // Validate USN format: 4MC{xx}{xx}{xxx}
 const validateUSN = (usn: string): boolean => {
@@ -65,43 +29,86 @@ export default function TeamSelection() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [tempUsn, setTempUsn] = useState('');
   const [tempDob, setTempDob] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleVerify = async () => {
-    if (!tempUsn || !tempDob) {
-      alert('Please enter both USN and DOB.');
+    setErrorMessage('');
+    
+    const trimmedUSN = tempUsn.trim().toUpperCase();
+    
+    if (!trimmedUSN || !tempDob) {
+      setErrorMessage('Please enter both USN and DOB.');
       return;
     }
 
-    if (!validateUSN(tempUsn)) {
-      alert('Invalid USN format! Must be: 4MC{year}{branch}{roll}\nExample: 4MC23CS003');
+    if (!validateUSN(trimmedUSN)) {
+      setErrorMessage('Invalid USN format! Must be: 4MC{year}{branch}{roll} (e.g., 4MC23CS003)');
       return;
     }
 
     if (!validateDOB(tempDob)) {
-      alert('Invalid DOB format! Must be: DDMMYY\nExample: 150203 for 15th Feb 2003');
+      setErrorMessage('Invalid DOB format! Must be: DDMMYY (e.g., 150203 for 15th Feb 2003)');
       return;
     }
 
-    const branchCode = extractBranchCode(tempUsn);
-    const stream = mapBranchToStream(branchCode);
-    const section = extractSection(tempUsn);
+    // Check if student exists in database and DOB matches
+    const studentData = mockStudentDatabase[trimmedUSN];
+    
+    if (!studentData) {
+      setErrorMessage('Student not found! Please check the USN.');
+      return;
+    }
+    
+    if (studentData.dob !== tempDob) {
+      setErrorMessage('Date of Birth does not match our records!');
+      return;
+    }
+    
+    // Check if student is already in a team (database flag check)
+    // This check would be done via Supabase query in production
+    if (studentData.inTeam && editingIndex === null) {
+      setErrorMessage('This student is already part of a team!');
+      return;
+    }
+    
+    // Check if team leader is trying to add themselves
+    if (teamLeader && trimmedUSN === teamLeader.usn) {
+      setErrorMessage('Team leader cannot be added as a team member!');
+      return;
+    }
+    
+    // Check for duplicate in current team (excluding the one being edited)
+    const isDuplicate = verifiedMembers.some((member, idx) => 
+      member.usn === trimmedUSN && idx !== editingIndex
+    );
+    
+    if (isDuplicate) {
+      setErrorMessage('This student is already added to your team!');
+      return;
+    }
 
-    const mockMember: TeamMember = {
-      usn: tempUsn,
+    const branchCode = extractBranchCode(trimmedUSN);
+    const stream = mapBranchToStream(branchCode);
+    
+    console.log('Member Debug:', { trimmedUSN, branchCode, stream });
+
+    const verifiedMember: TeamMember = {
+      usn: trimmedUSN,
       dob: tempDob,
-      name: mockNames[Math.floor(Math.random() * mockNames.length)],
+      name: studentData.name,
       stream: stream,
-      section: section,
+      section: studentData.section,
     };
 
     if (editingIndex !== null && editingIndex < verifiedMembers.length) {
       // Update existing member
       const updated = [...verifiedMembers];
-      updated[editingIndex] = mockMember;
+      updated[editingIndex] = verifiedMember;
       setVerifiedMembers(updated);
     } else {
-      // Add new member
-      setVerifiedMembers([...verifiedMembers, mockMember]);
+      // Add new member (but don't set inTeam flag yet)
+      // Flag will only be set on final submission
+      setVerifiedMembers([...verifiedMembers, verifiedMember]);
     }
     
     setEditingIndex(null);
@@ -113,26 +120,27 @@ export default function TeamSelection() {
     setEditingIndex(index);
     setTempUsn(verifiedMembers[index].usn);
     setTempDob(verifiedMembers[index].dob);
+    setErrorMessage('');
   };
 
   const handleDelete = (index: number) => {
     const updated = verifiedMembers.filter((_, i) => i !== index);
     setVerifiedMembers(updated);
+    setErrorMessage('');
   };
 
   const handleCancelEdit = () => {
     setEditingIndex(null);
     setTempUsn('');
     setTempDob('');
-  };
-
-  const handleSaveEdit = () => {
-    handleVerify();
+    setErrorMessage('');
   };
 
   const handleContinue = () => {
+    setErrorMessage('');
+    
     if (verifiedMembers.length !== 5) {
-      alert('You must add exactly 5 team members (not including team leader).\nTotal team size: 6 members (1 leader + 5 members)');
+      setErrorMessage('You must add exactly 5 team members (not including team leader). Total team size: 6 members (1 leader + 5 members)');
       return;
     }
 
@@ -143,7 +151,7 @@ export default function TeamSelection() {
     const streams = new Set(allTeamMembers.map(m => m.stream).filter(s => s && s !== 'Unknown'));
     
     if (streams.size < 2) {
-      alert('Team must have members from at least 2 different streams!\nStreams: Computer Science, Electronics, Mechanical, Civil');
+      setErrorMessage('Team must have members from at least 2 different streams! Available streams: Computer Science Engineering, Electronics Engineering, Mechanical Engineering, Civil Engineering');
       return;
     }
     
@@ -183,7 +191,7 @@ export default function TeamSelection() {
                   Name
                 </p>
                 <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px] break-words">
-                  {teamLeader.name || 'Max'}
+                  {teamLeader.name}
                 </p>
               </div>
               <div>
@@ -199,7 +207,7 @@ export default function TeamSelection() {
                   Stream
                 </p>
                 <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
-                  {teamLeader.stream || 'Computer Science'}
+                  {teamLeader.stream}
                 </p>
               </div>
               <div>
@@ -207,7 +215,7 @@ export default function TeamSelection() {
                   Section
                 </p>
                 <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
-                  {teamLeader.section || 'O'}
+                  {teamLeader.section}
                 </p>
               </div>
             </div>
@@ -233,7 +241,10 @@ export default function TeamSelection() {
               <input
                 type="text"
                 value={tempUsn}
-                onChange={(e) => setTempUsn(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setTempUsn(e.target.value.toUpperCase());
+                  setErrorMessage('');
+                }}
                 className="w-full h-[40px] border border-black rounded-[15px] px-4 bg-transparent focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="4MCXXYYZZZ"
                 disabled={verifiedMembers.length >= 5 && editingIndex === null}
@@ -246,7 +257,10 @@ export default function TeamSelection() {
               <input
                 type="password"
                 value={tempDob}
-                onChange={(e) => setTempDob(e.target.value)}
+                onChange={(e) => {
+                  setTempDob(e.target.value);
+                  setErrorMessage('');
+                }}
                 placeholder="DDMMYY"
                 maxLength={6}
                 className="w-full h-[40px] border border-black rounded-[15px] px-4 bg-transparent focus:outline-none focus:ring-2 focus:ring-black"
@@ -254,6 +268,15 @@ export default function TeamSelection() {
               />
             </div>
           </div>
+
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mb-[12px] p-[12px] bg-red-100 border border-red-400 rounded-[10px]">
+              <p className="font-['Inter',sans-serif] text-[12px] text-red-700 leading-[16px]">
+                {errorMessage}
+              </p>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-2">
@@ -292,7 +315,7 @@ export default function TeamSelection() {
                       Name
                     </p>
                     <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px] break-words">
-                      {member.name || 'Unknown'}
+                      {member.name}
                     </p>
                   </div>
                   <div>
@@ -308,7 +331,7 @@ export default function TeamSelection() {
                       Stream
                     </p>
                     <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
-                      {member.stream || 'Unknown'}
+                      {member.stream}
                     </p>
                   </div>
                   <div>
@@ -316,7 +339,7 @@ export default function TeamSelection() {
                       Section
                     </p>
                     <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
-                      {member.section || 'N/A'}
+                      {member.section}
                     </p>
                   </div>
                 </div>

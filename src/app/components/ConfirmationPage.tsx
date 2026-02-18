@@ -1,17 +1,34 @@
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { ChevronLeft } from 'lucide-react';
+import { mockStudentDatabase } from './LoginForm';
 
 export default function ConfirmationPage() {
   const navigate = useNavigate();
   const { teamLeader, teamMembers, selectedGuide } = useAppContext();
 
   const handleSubmit = () => {
+    // This is where the database would be updated with inTeam flags
+    // In production, this would be a Supabase transaction
+    
+    // Set inTeam flag for team leader
+    if (teamLeader && mockStudentDatabase[teamLeader.usn]) {
+      mockStudentDatabase[teamLeader.usn].inTeam = true;
+    }
+    
+    // Set inTeam flag for all team members
+    teamMembers.forEach(member => {
+      if (mockStudentDatabase[member.usn]) {
+        mockStudentDatabase[member.usn].inTeam = true;
+      }
+    });
+    
     console.log('Final submission:', {
       teamLeader,
       teamMembers,
       selectedGuide,
     });
+    
     alert('Team and guide selection submitted successfully!');
     navigate('/');
   };

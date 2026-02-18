@@ -4,7 +4,7 @@ export interface TeamMember {
   usn: string;
   dob: string;
   name?: string;
-  branch?: string;
+  stream?: string;
   section?: string;
 }
 
@@ -27,13 +27,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [teamLeader, setTeamLeader] = useState<TeamMember | null>({
-    usn: '4MC25AB067',
-    dob: '',
-    name: 'Max',
-    stream: 'Computer Science',
-    section: 'O',
-  });
+  const [teamLeader, setTeamLeader] = useState<TeamMember | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
 
