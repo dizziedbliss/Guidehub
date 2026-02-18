@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { ChevronLeft } from 'lucide-react';
-import { mockStudentDatabase } from './LoginForm';
+import { getStreamFromUsn, mockStudentDatabase } from './LoginForm';
 
 export default function ConfirmationPage() {
   const navigate = useNavigate();
@@ -129,7 +129,7 @@ export default function ConfirmationPage() {
                       stream
                     </p>
                     <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
-                      {member.stream || 'Computer Science'}
+                      {getStreamFromUsn(member.usn || '') || member.stream || ''}
                     </p>
                   </div>
                   <div>

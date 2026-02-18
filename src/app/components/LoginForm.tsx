@@ -47,14 +47,15 @@ const mockStudentDatabase: { [key: string]: { name: string; dob: string; section
   '4MC23CB040': { name: 'Anirudh Menon', dob: '180305', section: 'T', inTeam: false },
 };
 
-// Extract branch code from USN (positions 6-7, 0-indexed)
+// Extract branch code from USN: 4MC{yy}{BR}{rrr} (e.g., 4MC23CI066 → CI)
 const extractBranchCode = (usn: string): string => {
-  if (!usn || usn.length < 9) return '';
-  return usn.substring(6, 8).toUpperCase();
+  const normalized = (usn || '').trim().toUpperCase();
+  const match = normalized.match(/^4MC\d{2}([A-Z]{2})\d{3}$/);
+  return match?.[1] ?? '';
 };
 
 // Map branch codes to streams
-const mapBranchToStream = (branchCode: string): string => {
+const mapBranchToStream = (branchCode: string): string | null => {
   const streamMap: { [key: string]: string } = {
     // Computer Science Engineering Stream
     'CB': 'Computer Science Engineering',
@@ -74,7 +75,12 @@ const mapBranchToStream = (branchCode: string): string => {
     'CV': 'Civil Engineering',
   };
   
-  return streamMap[branchCode] || 'Unknown';
+  return streamMap[branchCode] ?? null;
+};
+
+const getStreamFromUsn = (usn: string): string | null => {
+  const branchCode = extractBranchCode(usn);
+  return mapBranchToStream(branchCode);
 };
 
 // Validate USN format: 4MC{xx}{xx}{xxx}
@@ -119,46 +125,48 @@ export default function LoginForm() {
       return;
     }
     
-    // Check if student exists in database
+    // Check if student exists in mock database (in production, this would be Supabase)
     const studentData = mockStudentDatabase[trimmedUSN];
-    
-    if (!studentData) {
-      setErrorMessage('Student not found! Please check the USN.');
-      return;
-    }
-    
-    // Verify DOB
-    if (studentData.dob !== password) {
-      setErrorMessage('Date of Birth does not match our records!');
-      return;
-    }
-    
-    // Check if student is already in a team (would be checked in database in production)
-    if (studentData.inTeam) {
-      setErrorMessage('You are already part of a team!');
-      return;
+
+    // If the USN isn't in the mock database, still allow login for valid USNs.
+    // (We can't validate DOB/inTeam without a real backend record.)
+    if (studentData) {
+      // Verify DOB
+      if (studentData.dob !== password) {
+        setErrorMessage('Date of Birth does not match our records!');
+        return;
+      }
+
+      // Check if student is already in a team (would be checked in database in production)
+      if (studentData.inTeam) {
+        setErrorMessage('You are already part of a team!');
+        return;
+      }
     }
     
     // Extract branch code and map to stream
-    const branchCode = extractBranchCode(trimmedUSN);
-    const stream = mapBranchToStream(branchCode);
+    const stream = getStreamFromUsn(trimmedUSN);
+    if (!stream) {
+      setErrorMessage('Unsupported branch code in USN. Allowed: CS, CB, CI, EE, EC, VL, RB, ME, CV');
+      return;
+    }
     
-    console.log('Login Debug:', { trimmedUSN, branchCode, stream });
+    console.log('Login Debug:', { trimmedUSN, stream });
     
     // Set team leader with actual student data
     setTeamLeader({
       usn: trimmedUSN,
       dob: password,
-      name: studentData.name,
+      name: studentData?.name ?? 'Team Leader',
       stream: stream,
-      section: studentData.section,
+      section: studentData?.section ?? '',
     });
     
     // NOTE: inTeam flag will NOT be set here
     // It will only be set when final submission happens (in Confirmation page)
     // This allows users to navigate back without locking their account
     
-    console.log('Login successful:', { usn: trimmedUSN, name: studentData.name, stream });
+    console.log('Login successful:', { usn: trimmedUSN, name: studentData?.name ?? 'Team Leader', stream });
     // Navigate to team selection page after login
     navigate('/team');
   };
@@ -246,4 +254,4 @@ export default function LoginForm() {
 }
 
 // Export database and utility functions for use in other components
-export { mockStudentDatabase, extractBranchCode, mapBranchToStream };
+export { mockStudentDatabase, extractBranchCode, mapBranchToStream, getStreamFromUsn };
