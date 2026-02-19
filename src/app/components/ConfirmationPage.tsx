@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { ChevronLeft } from 'lucide-react';
-import { mockStudentDatabase } from './LoginForm';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 
 export default function ConfirmationPage() {
@@ -10,6 +9,13 @@ export default function ConfirmationPage() {
   const { teamLeader, teamMembers, selectedGuide, setTeamId } = useAppContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect if incomplete (navigation guard)
+  useEffect(() => {
+    if (!teamLeader || teamMembers.length !== 5 || !selectedGuide) {
+      navigate('/');
+    }
+  }, [teamLeader, teamMembers, selectedGuide, navigate]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -29,7 +35,8 @@ export default function ConfirmationPage() {
       );
       
       if (!generateResponse.ok) {
-        throw new Error('Failed to generate team ID');
+        const errorData = await generateResponse.json();
+        throw new Error(errorData.error || 'Failed to generate team ID');
       }
       
       const generateData = await generateResponse.json();
@@ -60,7 +67,8 @@ export default function ConfirmationPage() {
       );
       
       if (!registerResponse.ok) {
-        throw new Error('Failed to register team');
+        const errorData = await registerResponse.json();
+        throw new Error(errorData.error || 'Failed to register team');
       }
       
       const registerData = await registerResponse.json();
@@ -68,17 +76,6 @@ export default function ConfirmationPage() {
       if (!registerData.success) {
         throw new Error(registerData.error || 'Failed to register team');
       }
-      
-      // Update local mock database for demo purposes
-      if (teamLeader && mockStudentDatabase[teamLeader.usn]) {
-        mockStudentDatabase[teamLeader.usn].inTeam = true;
-      }
-      
-      teamMembers.forEach(member => {
-        if (mockStudentDatabase[member.usn]) {
-          mockStudentDatabase[member.usn].inTeam = true;
-        }
-      });
       
       // Store team ID in context
       setTeamId(generatedTeamId);
@@ -106,15 +103,20 @@ export default function ConfirmationPage() {
     ...teamMembers.map((m, i) => ({ ...m, label: `Team Member ${i + 1}` })),
   ];
 
+  if (!teamLeader || teamMembers.length !== 5 || !selectedGuide) {
+    return null; // Will redirect via useEffect
+  }
+
   return (
-    <div className="bg-[#e9e9e9] relative w-full min-h-screen pb-[40px]">
-      <div className="relative w-full max-w-[398px] mx-auto px-4 sm:px-6 md:px-8">
+    <div className="bg-[#e9e9e9] relative w-full min-h-screen pb-12">
+      <div className="relative w-full max-w-[420px] mx-auto px-6 sm:px-8">
         {/* Header */}
-        <div className="flex items-center pt-[16px]">
+        <div className="flex items-center pt-6">
           {/* Back Button */}
           <button 
             onClick={() => navigate('/guide')}
-            className="w-[30px] h-[42px] cursor-pointer flex items-center justify-center mr-2"
+            className="w-[34px] h-[44px] cursor-pointer flex items-center justify-center mr-3"
+            disabled={isSubmitting}
           >
             <ChevronLeft size={30} className="text-[#3b3b3b]" strokeWidth={2.5} />
           </button>
@@ -125,32 +127,32 @@ export default function ConfirmationPage() {
         </div>
 
         {/* Title */}
-        <p className="font-['Cormorant',serif] font-normal leading-[44px] sm:leading-[52px] text-[#171717] text-[32px] sm:text-[40px] mt-[20px] sm:mt-[30px]">
+        <p className="font-['Cormorant',serif] font-normal leading-[44px] sm:leading-[52px] text-[#171717] text-[32px] sm:text-[40px] mt-8">
           Confirm the details
         </p>
 
-        <div className="mt-[24px] sm:mt-[35px] space-y-[20px] sm:space-y-[27px]">
+        <div className="mt-8 space-y-8">
           {/* Guide Section */}
           {selectedGuide && (
             <div>
-              <p className="font-['Cabin',sans-serif] font-normal leading-[36px] sm:leading-[44px] text-[#171717] text-[20px] sm:text-[24px] mb-[6px]">
+              <p className="font-['Cabin',sans-serif] font-normal leading-[36px] sm:leading-[44px] text-[#171717] text-[20px] sm:text-[24px] mb-4">
                 Guide
               </p>
-              <div className="relative min-h-[96px] w-full border border-[#3b3b3b] rounded-[15px] p-[16px] sm:p-[21px]">
-                <div className="space-y-[4px]">
+              <div className="relative min-h-[100px] w-full border border-[#3b3b3b] rounded-[15px] p-6">
+                <div className="space-y-3">
                   <div>
-                    <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#171717]">
+                    <p className="font-['Inter',sans-serif] font-semibold text-[13px] text-[#171717]">
                       name
                     </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[2px] break-words">
+                    <p className="font-['Cabin',sans-serif] text-[15px] text-[#171717] mt-1 break-words">
                       {selectedGuide.name}
                     </p>
                   </div>
                   <div>
-                    <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#171717]">
+                    <p className="font-['Inter',sans-serif] font-semibold text-[13px] text-[#171717]">
                       email
                     </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[2px] break-words">
+                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-1 break-words">
                       {selectedGuide.email}
                     </p>
                   </div>
@@ -167,16 +169,16 @@ export default function ConfirmationPage() {
           {/* Team Members Section */}
           {allMembers.map((member, index) => (
             <div key={index}>
-              <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#999999] mb-[16px] sm:mb-[25px]">
+              <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#999999] mb-6 sm:mb-8">
                 {member.label}
               </p>
-              <div className="relative w-full border border-[#3b3b3b] rounded-[15px] p-[16px]">
+              <div className="relative w-full border border-[#3b3b3b] rounded-[15px] p-6">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-[12px]">
                   <div>
                     <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#171717]">
                       name
                     </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px] break-words">
+                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-4 break-words">
                       {member.name || 'Max'}
                     </p>
                   </div>
@@ -184,7 +186,7 @@ export default function ConfirmationPage() {
                     <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#171717]">
                       usn
                     </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px] break-words">
+                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-4 break-words">
                       {member.usn || 'N/A'}
                     </p>
                   </div>
@@ -192,7 +194,7 @@ export default function ConfirmationPage() {
                     <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#171717]">
                       stream
                     </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
+                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-4">
                       {member.stream || 'Computer Science'}
                     </p>
                   </div>
@@ -200,7 +202,7 @@ export default function ConfirmationPage() {
                     <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#171717]">
                       section
                     </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-[4px]">
+                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-4">
                       {member.section || 'O'}
                     </p>
                   </div>
@@ -211,7 +213,7 @@ export default function ConfirmationPage() {
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end mt-[20px] sm:mt-[27px]">
+        <div className="flex justify-end mt-8">
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
@@ -223,7 +225,7 @@ export default function ConfirmationPage() {
         
         {/* Error Message */}
         {error && (
-          <div className="mt-[10px] p-[12px] bg-red-50 border border-red-200 rounded-[10px]">
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-[10px]">
             <p className="text-red-600 text-[13px] font-['Inter',sans-serif]">
               <span className="font-semibold">Error:</span> {error}
             </p>

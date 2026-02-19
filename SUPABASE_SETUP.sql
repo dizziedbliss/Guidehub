@@ -1,15 +1,14 @@
 -- ============================================
--- SUPABASE DATABASE SETUP GUIDE
--- ============================================
-
--- STEP 1: Create Tables in Supabase Dashboard
--- Go to: https://supabase.com/dashboard/project/YOUR_PROJECT/editor
--- Click "SQL Editor" -> "New Query"
--- Copy and paste the CREATE TABLE statements below
-
--- ============================================
 -- CREATE TABLES
 -- ============================================
+
+-- KV Store table (for team counter and other key-value data)
+CREATE TABLE IF NOT EXISTS public.kv_store_fdaa97b0 (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- Students table
 CREATE TABLE IF NOT EXISTS public.students (

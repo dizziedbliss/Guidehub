@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { ChevronLeft } from 'lucide-react';
-import { extractBranchCode } from './LoginForm';
+import { extractBranchCode } from '../utils/helpers';
 
 export default function ApplicationLetter() {
   const navigate = useNavigate();
