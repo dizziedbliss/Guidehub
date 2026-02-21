@@ -8,8 +8,8 @@ export interface TeamMember {
 }
 
 export interface Guide {
+  id: string | number;
   name: string;
-  email: string;
   department: string;
   currentTeams?: number;
   maxCapacity?: number;

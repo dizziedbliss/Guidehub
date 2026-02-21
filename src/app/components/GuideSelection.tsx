@@ -65,9 +65,7 @@ export default function GuideSelection() {
 
   // Filter guides by search query and department
   const filteredGuides = guides.filter((guide) => {
-    const matchesSearch = 
-      guide.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      guide.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = guide.name.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesDepartment = 
       selectedDepartment === 'All Departments' || 
@@ -77,8 +75,16 @@ export default function GuideSelection() {
   });
 
   const handleGuideSelect = (guide: Guide) => {
+    const confirmed = window.confirm(
+      'After selecting this guide, you cannot go back. Press OK to continue or Cancel to edit your selection.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     setSelectedGuide(guide);
-    navigate('/confirm');
+    navigate('/confirm', { replace: true });
   };
 
   if (!teamLeader || teamMembers.length !== 5) {

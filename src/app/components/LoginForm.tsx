@@ -2,18 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
-import { validateUSN } from '../utils/helpers';
+import { extractBranchCode, mapBranchToStream, validateUSN } from '../utils/helpers';
 
 export default function LoginForm() {
   const [seatNumber, setSeatNumber] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [existingTeamData, setExistingTeamData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { setTeamLeader } = useAppContext();
+  const { setTeamLeader, setTeamMembers, setSelectedGuide, setTeamId } = useAppContext();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setExistingTeamData(null);
     setIsLoading(true);
     
     const trimmedUSN = seatNumber.trim().toUpperCase();
@@ -45,7 +47,16 @@ export default function LoginForm() {
       
       if (!response.ok || !data.success) {
         if (data.inTeam) {
-          setErrorMessage('You are already part of a team! You cannot register again.');
+          const existingTeam = data.team || null;
+
+          if (data.isLeader && existingTeam) {
+            setExistingTeamData(existingTeam);
+            setErrorMessage('You are already a team leader. Open your existing application form?');
+            setIsLoading(false);
+            return;
+          }
+
+          setErrorMessage('This USN is already part of a team and cannot register again.');
         } else {
           setErrorMessage(data.error || 'Invalid USN. Please check your credentials.');
         }
@@ -54,12 +65,13 @@ export default function LoginForm() {
       }
       
       const studentData = data.student;
+      const derivedStream = mapBranchToStream(extractBranchCode(studentData.usn));
       
       // Set team leader with verified student data
       setTeamLeader({
         usn: studentData.usn,
         name: studentData.name,
-        stream: studentData.stream,
+        stream: studentData.stream || derivedStream,
         section: studentData.section,
       });
       
@@ -69,6 +81,53 @@ export default function LoginForm() {
     } catch (err) {
       console.error('Login error:', err);
       setErrorMessage('Network error. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenExistingApplication = async () => {
+    if (existingTeamData) {
+      setTeamLeader(existingTeamData.teamLeader || null);
+      setTeamMembers(existingTeamData.teamMembers || []);
+      setSelectedGuide(existingTeamData.selectedGuide || null);
+      setTeamId(existingTeamData.teamId || null);
+      navigate('/application', { replace: true });
+      return;
+    }
+
+    const trimmedUSN = seatNumber.trim().toUpperCase();
+    if (!trimmedUSN) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const teamResponse = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-fdaa97b0/team-by-usn/${trimmedUSN}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`,
+          },
+        }
+      );
+
+      const teamData = await teamResponse.json();
+      if (!teamResponse.ok || !teamData.success || !teamData.team) {
+        setErrorMessage(teamData.error || 'Could not load your existing application form.');
+        return;
+      }
+
+      setTeamLeader(teamData.team.teamLeader || null);
+      setTeamMembers(teamData.team.teamMembers || []);
+      setSelectedGuide(teamData.team.selectedGuide || null);
+      setTeamId(teamData.team.teamId || null);
+      navigate('/application', { replace: true });
+    } catch (err) {
+      console.error('Load existing team error:', err);
+      setErrorMessage('Could not load your existing application form. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +184,24 @@ export default function LoginForm() {
               <p className="font-['Inter',sans-serif] text-[13px] text-red-700 leading-[18px]">
                 {errorMessage}
               </p>
+            </div>
+          )}
+
+          {existingTeamData && (
+            <div className="mb-6 p-4 bg-[#f5f5f5] border border-[#3b3b3b] rounded-[12px]">
+              <p className="font-['Inter',sans-serif] text-[13px] text-[#171717] leading-[18px] mb-3">
+                You are already a team leader for Team ID: {existingTeamData.teamId}
+              </p>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleOpenExistingApplication}
+                  disabled={isLoading}
+                  className="min-w-[170px] h-[34px] bg-black rounded-[10px] flex items-center justify-center font-['Inter',sans-serif] font-semibold text-[#e9e9e9] text-[13px] hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                  Open My Application
+                </button>
+              </div>
             </div>
           )}
 

@@ -1,8 +1,16 @@
 -- ============================================
--- CREATE TABLES
+-- GUIDEHUB SUPABASE SETUP (GUIDES NOT RECREATED)
 -- ============================================
+-- Run this in Supabase SQL Editor.
+-- This script:
+-- 1) sets up kv/team tables and policies
+-- 2) uses students table with only usn, name, section
+-- 3) includes students_raw CSV import flow
+-- 4) does NOT recreate or seed guides table
 
--- KV Store table (for team counter and other key-value data)
+-- ============================================
+-- 1) KV STORE TABLE
+-- ============================================
 CREATE TABLE IF NOT EXISTS public.kv_store_fdaa97b0 (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -10,35 +18,78 @@ CREATE TABLE IF NOT EXISTS public.kv_store_fdaa97b0 (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Students table
+-- ============================================
+-- 2) STUDENTS TABLE + CSV IMPORT FLOW
+-- ============================================
+
+-- Main table (only usn, name, section)
 CREATE TABLE IF NOT EXISTS public.students (
-    usn TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    dob TEXT NOT NULL,
-    branch TEXT NOT NULL,
-    section TEXT NOT NULL,
-    stream TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  usn TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  section TEXT NOT NULL
 );
 
--- Guides table
-CREATE TABLE IF NOT EXISTS public.guides (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    department TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Temp table for your current CSV (has branch too)
+DROP TABLE IF EXISTS public.students_raw;
+CREATE TABLE public.students_raw (
+  usn TEXT,
+  name TEXT,
+  section TEXT,
+  branch TEXT
 );
 
--- Teams table
+-- After CSV upload into students_raw, run this:
+INSERT INTO public.students (usn, name, section)
+SELECT TRIM(usn), TRIM(name), TRIM(section)
+FROM public.students_raw
+WHERE COALESCE(TRIM(usn), '') <> ''
+ON CONFLICT (usn) DO UPDATE
+SET
+  name = EXCLUDED.name,
+  section = EXCLUDED.section;
+
+-- Optional cleanup
+DROP TABLE IF EXISTS public.students_raw;
+
+-- Helpful index
+CREATE INDEX IF NOT EXISTS idx_students_name ON public.students(name);
+
+-- ============================================
+-- 3) GUIDES COMPATIBILITY (GUIDES ALREADY EXISTS)
+-- ============================================
+-- Current app/backend uses guides.id only.
+-- Ensure guides table has at least: id, name, department, created_at.
+
+-- ============================================
+-- 4) TEAMS TABLE
+-- ============================================
 CREATE TABLE IF NOT EXISTS public.teams (
     team_id TEXT PRIMARY KEY,
     leader_usn TEXT NOT NULL REFERENCES public.students(usn),
-    guide_email TEXT NOT NULL REFERENCES public.guides(email),
+  guide_id TEXT NOT NULL,
     registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Team members table (junction table)
+ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS guide_id TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_teams_leader_usn ON public.teams(leader_usn);
+CREATE INDEX IF NOT EXISTS idx_teams_guide_id ON public.teams(guide_id);
+
+-- ============================================
+-- 4B) GUIDE SLOT TRACKER (CROSS-CHECK)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.guide_slots (
+  guide_id TEXT PRIMARY KEY,
+  used_slots INTEGER NOT NULL DEFAULT 0,
+  max_slots INTEGER,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_guide_slots_used_slots ON public.guide_slots(used_slots);
+
+-- ============================================
+-- 5) TEAM MEMBERS TABLE
+-- ============================================
 CREATE TABLE IF NOT EXISTS public.team_members (
     id SERIAL PRIMARY KEY,
     team_id TEXT NOT NULL REFERENCES public.teams(team_id) ON DELETE CASCADE,
@@ -48,147 +99,78 @@ CREATE TABLE IF NOT EXISTS public.team_members (
     UNIQUE(team_id, usn)
 );
 
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_students_dob ON public.students(dob);
+-- Enforce one-student-one-team at DB level
+CREATE UNIQUE INDEX IF NOT EXISTS idx_team_members_unique_usn
+  ON public.team_members(usn);
+
 CREATE INDEX IF NOT EXISTS idx_team_members_usn ON public.team_members(usn);
 CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON public.team_members(team_id);
 
 -- ============================================
--- STEP 2: Enable Row Level Security (RLS)
+-- 6) RLS + POLICIES (RERUN-SAFE)
 -- ============================================
-
--- Enable RLS on all tables
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.guides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guide_slots ENABLE ROW LEVEL SECURITY;
 
--- Create policies for anonymous access (using service role key from backend)
-CREATE POLICY "Enable read access for all users" ON public.students FOR SELECT USING (true);
-CREATE POLICY "Enable read access for all users" ON public.guides FOR SELECT USING (true);
-CREATE POLICY "Enable insert for service role" ON public.teams FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable insert for service role" ON public.team_members FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable read access for all users" ON public.teams FOR SELECT USING (true);
-CREATE POLICY "Enable read access for all users" ON public.team_members FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.students;
+CREATE POLICY "Enable read access for all users"
+  ON public.students
+  FOR SELECT
+  USING (true);
 
--- ============================================
--- STEP 3: Insert Data
--- ============================================
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.guides;
+CREATE POLICY "Enable read access for all users"
+  ON public.guides
+  FOR SELECT
+  USING (true);
 
--- Insert Students Data (with branch and stream auto-calculated)
-INSERT INTO public.students (usn, name, dob, branch, section, stream) VALUES
--- Computer Science Engineering (CS, CI)
-('4MC23CS001','Aarav Sharma','120305','CS','A','Computer Science Engineering'),
-('4MC23CI002','Vivaan Reddy','210705','CI','B','Computer Science Engineering'),
-('4MC23CI007','Karthik Iyer','141205','CI','G','Computer Science Engineering'),
-('4MC24CS008','Siddharth Jain','070806','CS','H','Computer Science Engineering'),
-('4MC23CI011','Ananya Shetty','150505','CI','K','Computer Science Engineering'),
-('4MC24CS012','Diya Menon','221006','CS','L','Computer Science Engineering'),
-('4MC23CI017','Aditi Rao','060205','CI','Q','Computer Science Engineering'),
-('4MC23CS021','Rahul Mishra','160605','CS','A','Computer Science Engineering'),
-('4MC24CI022','Manish Kumar','271206','CI','B','Computer Science Engineering'),
-('4MC22CS027','Saurabh Jain','280704','CS','G','Computer Science Engineering'),
-('4MC23CI028','Omkar Hegde','090905','CI','H','Computer Science Engineering'),
-('4MC23CS031','Priya Rao','050605','CS','K','Computer Science Engineering'),
-('4MC24CI032','Nandini Sharma','170806','CI','L','Computer Science Engineering'),
-('4MC22RB037','Tejas Rao','260504','RB','Q','Mechanical Engineering'),
-('4MC23CS038','Darshan Bhat','140205','CS','R','Computer Science Engineering'),
-('4MC24CI039','Vivek Iyer','091106','CI','S','Computer Science Engineering'),
+DROP POLICY IF EXISTS "Enable insert for service role" ON public.teams;
+CREATE POLICY "Enable insert for service role"
+  ON public.teams
+  FOR INSERT
+  WITH CHECK (true);
 
--- Computer Science & Business Systems (CB)
-('4MC24CB005','Reyansh Gupta','300906','CB','E','Computer Science Engineering'),
-('4MC24CB015','Riya Verma','290706','CB','O','Computer Science Engineering'),
-('4MC24CB029','Varun Iyer','140406','CB','I','Computer Science Engineering'),
-('4MC23CB040','Anirudh Menon','180305','CB','T','Computer Science Engineering'),
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.teams;
+CREATE POLICY "Enable read access for all users"
+  ON public.teams
+  FOR SELECT
+  USING (true);
 
--- Electronics Engineering (EE, EC)
-('4MC22EE003','Ishaan Nair','051104','EE','C','Electronics Engineering'),
-('4MC23EC004','Aditya Rao','180105','EC','D','Electronics Engineering'),
-('4MC23EC013','Sneha Kulkarni','010105','EC','M','Electronics Engineering'),
-('4MC22EE014','Kavya Nambiar','170304','EE','N','Electronics Engineering'),
-('4MC22EE023','Tanmay Kulkarni','031004','EE','C','Electronics Engineering'),
-('4MC23EC024','Pranav Gowda','080105','EC','D','Electronics Engineering'),
-('4MC22EE033','Aishwarya Patil','290104','EE','M','Electronics Engineering'),
-('4MC23EC034','Swathi Hegde','101005','EC','N','Electronics Engineering'),
+DROP POLICY IF EXISTS "Enable insert for service role" ON public.team_members;
+CREATE POLICY "Enable insert for service role"
+  ON public.team_members
+  FOR INSERT
+  WITH CHECK (true);
 
--- VLSI Engineering (VL)
-('4MC23VL020','Shruti Bhat','040405','VL','T','Electronics Engineering'),
-('4MC23VL030','Akash Naik','210305','VL','J','Electronics Engineering'),
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.team_members;
+CREATE POLICY "Enable read access for all users"
+  ON public.team_members
+  FOR SELECT
+  USING (true);
 
--- Mechanical Engineering (ME, RB)
-('4MC22ME006','Arjun Patil','250404','ME','F','Mechanical Engineering'),
-('4MC23ME016','Meera Joshi','111105','ME','P','Mechanical Engineering'),
-('4MC24ME025','Yash Patidar','120206','ME','E','Mechanical Engineering'),
-('4MC23RB026','Rohit Das','190505','RB','F','Mechanical Engineering'),
-('4MC23ME036','Shreya Kulkarni','200705','ME','P','Mechanical Engineering'),
-('4MC24RB018','Pooja S','230806','RB','R','Mechanical Engineering'),
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.guide_slots;
+CREATE POLICY "Enable read access for all users"
+  ON public.guide_slots
+  FOR SELECT
+  USING (true);
 
--- Civil Engineering (CV)
-('4MC22CV009','Harsh Vardhan','190204','CV','I','Civil Engineering'),
-('4MC22CV019','Neha Reddy','130904','CV','S','Civil Engineering'),
-('4MC24CV035','Rachana N','021206','CV','O','Civil Engineering'),
+DROP POLICY IF EXISTS "Enable insert for service role" ON public.guide_slots;
+CREATE POLICY "Enable insert for service role"
+  ON public.guide_slots
+  FOR INSERT
+  WITH CHECK (true);
 
--- Robotics & AI (RB - mapped to Mechanical for stream diversity)
-('4MC23RB010','Nikhil Das','090605','RB','J','Mechanical Engineering');
-
--- Insert Faculty Guides Data
-INSERT INTO public.guides (name, email, department) VALUES
-('Dr. Ramesh Iyer','ramesh.iyer@mce.edu','Computer Science Engineering'),
-('Dr. Kavita Rao','kavita.rao@mce.edu','Artificial Intelligence and Machine Learning'),
-('Dr. Anil Kumar','anil.kumar@mce.edu','Electrical & Electronics Engineering'),
-('Dr. Snehalatha','snehalatha@mce.edu','Electronics & Communication Engineering'),
-('Dr. Mohan Patil','mohan.patil@mce.edu','Mechanical Engineering'),
-('Dr. Vivek Sharma','vivek.sharma@mce.edu','Civil Engineering'),
-('Dr. Pradeep N','pradeep.n@mce.edu','Robotics & AI Engineering'),
-('Dr. Meenakshi Rao','meenakshi.rao@mce.edu','VLSI Engineering'),
-('Dr. Sunil Bhat','sunil.bhat@mce.edu','Computer Science & Business System'),
-('Dr. Arpita Jain','arpita.jain@mce.edu','Artificial Intelligence and Machine Learning'),
-
-('Dr. Kiran Hegde','kiran.hegde@mce.edu','Physics'),
-('Dr. Lakshmi N','lakshmi.n@mce.edu','Chemistry'),
-('Dr. Deepa Menon','deepa.menon@mce.edu','Mathematics'),
-('Dr. Rahul Verma','rahul.verma@mce.edu','Physics'),
-('Dr. Pooja Shetty','pooja.shetty@mce.edu','Chemistry'),
-('Dr. Gopal Rao','gopal.rao@mce.edu','Mathematics'),
-('Dr. Harish Kulkarni','harish.k@mce.edu','Computer Science Engineering'),
-('Dr. Neha Patil','neha.patil@mce.edu','Artificial Intelligence and Machine Learning'),
-('Dr. Shankar Iyer','shankar.iyer@mce.edu','Electrical & Electronics Engineering'),
-('Dr. Ritu Sharma','ritu.sharma@mce.edu','Robotics & AI Engineering');
+DROP POLICY IF EXISTS "Enable update for service role" ON public.guide_slots;
+CREATE POLICY "Enable update for service role"
+  ON public.guide_slots
+  FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
 
 -- ============================================
--- VERIFICATION QUERIES
+-- DONE
 -- ============================================
-
--- Count students by stream
-SELECT stream, COUNT(*) as count 
-FROM public.students 
-GROUP BY stream 
-ORDER BY count DESC;
-
--- Count students by branch
-SELECT branch, COUNT(*) as count 
-FROM public.students 
-GROUP BY branch 
-ORDER BY count DESC;
-
--- List all guides by department
-SELECT department, COUNT(*) as count 
-FROM public.guides 
-GROUP BY department 
-ORDER BY count DESC;
-
--- View all students
-SELECT * FROM public.students ORDER BY usn;
-
--- View all guides
-SELECT * FROM public.guides ORDER BY name;
-
--- ============================================
--- SETUP COMPLETE! 
--- ============================================
--- Your backend is now ready to:
--- 1. Verify student login (USN + DOB)
--- 2. Fetch all faculty guides
--- 3. Register teams
--- 4. Track team members
--- ============================================
+-- guide_slots is optional cross-check tracking; registrations still work without it.

@@ -1,11 +1,24 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { ChevronLeft } from 'lucide-react';
-import { extractBranchCode } from '../utils/helpers';
 
 export default function ApplicationLetter() {
   const navigate = useNavigate();
   const { teamLeader, teamMembers, selectedGuide, teamId } = useAppContext();
+
+  useEffect(() => {
+    const handleBackNavigation = () => {
+      navigate('/', { replace: true });
+    };
+
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handleBackNavigation);
+
+    return () => {
+      window.removeEventListener('popstate', handleBackNavigation);
+    };
+  }, [navigate]);
 
   // Combine team leader and members
   const allMembers = teamLeader ? [teamLeader, ...teamMembers] : teamMembers;
@@ -31,7 +44,7 @@ export default function ApplicationLetter() {
         <div className="flex items-center justify-between pt-[16px] pb-[20px]">
           <div className="flex items-center">
             <button 
-              onClick={() => navigate('/confirm')}
+              onClick={() => navigate('/', { replace: true })}
               className="w-[30px] h-[42px] cursor-pointer flex items-center justify-center mr-2"
             >
               <ChevronLeft size={30} className="text-[#3b3b3b]" strokeWidth={2.5} />
@@ -122,14 +135,14 @@ export default function ApplicationLetter() {
                       </p>
                     </div>
 
-                    {/* Stream and Branch */}
+                    {/* Stream and Section */}
                     <div className="flex-shrink-0 w-[150px]">
                       <p className="font-['Inter',sans-serif] text-[#999999] text-[7px] uppercase tracking-wide mb-[3px]">
                         Stream
                       </p>
                       <div className="flex flex-col gap-1">
-                        <span className="inline-block px-[8px] py-[2px] bg-[#171717] rounded-[5px] font-['Inter',sans-serif] text-[9px] text-white font-medium w-fit">
-                          {extractBranchCode(member.usn)}
+                        <span className="inline-block px-[8px] py-[2px] bg-white border border-[#171717] rounded-[5px] font-['Inter',sans-serif] text-[9px] text-[#171717] font-medium w-fit">
+                          Sec {member.section || 'N/A'}
                         </span>
                         <span className="font-['Inter',sans-serif] text-[#3b3b3b] text-[8px] leading-[10px]">
                           {member.stream}
@@ -174,14 +187,7 @@ export default function ApplicationLetter() {
                         {selectedGuide.department}
                       </p>
                     </div>
-                    <div className="col-span-2">
-                      <p className="font-['Inter',sans-serif] text-[#999999] text-[9px] uppercase tracking-wide mb-[3px]">
-                        Email
-                      </p>
-                      <p className="font-['Inter',sans-serif] text-[#3b3b3b] text-[11px]">
-                        {selectedGuide.email}
-                      </p>
-                    </div>
+
                   </div>
 
                   {/* Guide Signature */}

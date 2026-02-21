@@ -13,18 +13,20 @@ export function extractBranchCode(usn: string): string {
  * Map branch code to stream name
  */
 export function mapBranchToStream(branch: string): string {
+  const normalizedBranch = branch.trim().toUpperCase();
   const streamMap: Record<string, string> = {
     'CS': 'Computer Science Engineering',
     'CI': 'Computer Science Engineering',
     'CB': 'Computer Science Engineering',
+    'CV': 'Civil Engineering',
+    'ME': 'Mechanical Engineering',
+    'RI': 'Mechanical Engineering',
+    'RB': 'Mechanical Engineering',
     'EE': 'Electronics Engineering',
     'EC': 'Electronics Engineering',
     'VL': 'Electronics Engineering',
-    'ME': 'Mechanical Engineering',
-    'RI': 'Mechanical Engineering',
-    'CV': 'Civil Engineering',
   };
-  return streamMap[branch] || 'Unknown';
+  return streamMap[normalizedBranch] || 'Unknown';
 }
 
 /**

@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
-import { ChevronLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 
@@ -88,7 +87,7 @@ export default function ConfirmationPage() {
       });
       
       // Navigate to application letter generation
-      navigate('/application');
+      navigate('/application', { replace: true });
     } catch (err) {
       console.error('Error during team submission:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -112,15 +111,6 @@ export default function ConfirmationPage() {
       <div className="relative w-full max-w-[420px] mx-auto px-6 sm:px-8">
         {/* Header */}
         <div className="flex items-center pt-6">
-          {/* Back Button */}
-          <button 
-            onClick={() => navigate('/guide')}
-            className="w-[34px] h-[44px] cursor-pointer flex items-center justify-center mr-3"
-            disabled={isSubmitting}
-          >
-            <ChevronLeft size={30} className="text-[#3b3b3b]" strokeWidth={2.5} />
-          </button>
-          
           <p className="font-['Cormorant',serif] font-bold leading-[64px] text-[#3b3b3b] text-[57px]">
             IP
           </p>

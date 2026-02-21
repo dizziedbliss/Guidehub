@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router';
 import { useAppContext, TeamMember } from '../context/AppContext';
 import { ChevronLeft, Pencil } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
-import { validateUSN } from '../utils/helpers';
+import { extractBranchCode, mapBranchToStream, validateUSN } from '../utils/helpers';
 
 export default function TeamSelection() {
   const navigate = useNavigate();
   const { teamLeader, teamMembers, setTeamMembers } = useAppContext();
+
+  const getResolvedStream = (member: TeamMember) => {
+    if (member.stream && member.stream.trim() !== '') {
+      return member.stream;
+    }
+    return mapBranchToStream(extractBranchCode(member.usn));
+  };
   
   const [verifiedMembers, setVerifiedMembers] = useState<TeamMember[]>(teamMembers);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -87,11 +94,12 @@ export default function TeamSelection() {
       }
       
       const studentData = data.student;
+      const derivedStream = mapBranchToStream(extractBranchCode(studentData.usn));
 
       const verifiedMember: TeamMember = {
         usn: studentData.usn,
         name: studentData.name,
-        stream: studentData.stream,
+        stream: studentData.stream || derivedStream,
         section: studentData.section,
       };
 
@@ -145,7 +153,7 @@ export default function TeamSelection() {
     
     // Check for at least 2 different streams including team leader
     const allTeamMembers = teamLeader ? [teamLeader, ...validMembers] : validMembers;
-    const streams = new Set(allTeamMembers.map(m => m.stream).filter(Boolean));
+    const streams = new Set(allTeamMembers.map(getResolvedStream).filter(stream => stream && stream !== 'Unknown'));
     
     if (streams.size < 2) {
       setErrorMessage('Team must have members from at least 2 different streams! Available streams: Computer Science Engineering, Electronics Engineering, Mechanical Engineering, Civil Engineering');
@@ -208,7 +216,7 @@ export default function TeamSelection() {
                   Stream
                 </p>
                 <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-1">
-                  {teamLeader.stream}
+                  {getResolvedStream(teamLeader)}
                 </p>
               </div>
               <div>
@@ -254,7 +262,7 @@ export default function TeamSelection() {
           </div>
 
           {/* Error Message */}
-          {errorMessage && (
+          {errorMessage && !errorMessage.startsWith('Team must have members from at least 2 different streams!') && (
             <div className="mb-4 p-4 bg-red-100 border border-red-400 rounded-[12px]">
               <p className="font-['Inter',sans-serif] text-[13px] text-red-700 leading-[18px]">
                 {errorMessage}
@@ -316,7 +324,7 @@ export default function TeamSelection() {
                       Stream
                     </p>
                     <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-1">
-                      {member.stream}
+                      {getResolvedStream(member)}
                     </p>
                   </div>
                   <div>
@@ -350,6 +358,14 @@ export default function TeamSelection() {
         )}
 
         {/* Submit Button */}
+        {errorMessage.startsWith('Team must have members from at least 2 different streams!') && (
+          <div className="mt-6 p-4 bg-red-100 border border-red-400 rounded-[12px]">
+            <p className="font-['Inter',sans-serif] text-[13px] text-red-700 leading-[18px]">
+              {errorMessage}
+            </p>
+          </div>
+        )}
+
         <div className="flex justify-end mt-8">
           <button
             onClick={handleContinue}
