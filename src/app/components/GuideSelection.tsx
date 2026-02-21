@@ -2,46 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext, Guide } from '../context/AppContext';
 import { ChevronLeft, Search } from 'lucide-react';
-
-// Mock data for guides - In production, this would be fetched from Supabase
-const mockGuides: Guide[] = [
-  { name: 'Dr. Ramesh Iyer', email: 'ramesh.iyer@mce.edu', department: 'Computer Science Engineering' },
-  { name: 'Dr. Kavita Rao', email: 'kavita.rao@mce.edu', department: 'Artificial Intelligence and Machine Learning' },
-  { name: 'Dr. Anil Kumar', email: 'anil.kumar@mce.edu', department: 'Electrical & Electronics Engineering' },
-  { name: 'Dr. Snehalatha', email: 'snehalatha@mce.edu', department: 'Electronics & Communication Engineering' },
-  { name: 'Dr. Mohan Patil', email: 'mohan.patil@mce.edu', department: 'Mechanical Engineering' },
-  { name: 'Dr. Vivek Sharma', email: 'vivek.sharma@mce.edu', department: 'Civil Engineering' },
-  { name: 'Dr. Pradeep N', email: 'pradeep.n@mce.edu', department: 'Robotics & AI Engineering' },
-  { name: 'Dr. Meenakshi Rao', email: 'meenakshi.rao@mce.edu', department: 'VLSI Engineering' },
-  { name: 'Dr. Sunil Bhat', email: 'sunil.bhat@mce.edu', department: 'Computer Science & Business System' },
-  { name: 'Dr. Arpita Jain', email: 'arpita.jain@mce.edu', department: 'Artificial Intelligence and Machine Learning' },
-  { name: 'Dr. Kiran Hegde', email: 'kiran.hegde@mce.edu', department: 'Physics' },
-  { name: 'Dr. Lakshmi N', email: 'lakshmi.n@mce.edu', department: 'Chemistry' },
-  { name: 'Dr. Deepa Menon', email: 'deepa.menon@mce.edu', department: 'Mathematics' },
-  { name: 'Dr. Rahul Verma', email: 'rahul.verma@mce.edu', department: 'Physics' },
-  { name: 'Dr. Pooja Shetty', email: 'pooja.shetty@mce.edu', department: 'Chemistry' },
-  { name: 'Dr. Gopal Rao', email: 'gopal.rao@mce.edu', department: 'Mathematics' },
-  { name: 'Dr. Harish Kulkarni', email: 'harish.k@mce.edu', department: 'Computer Science Engineering' },
-  { name: 'Dr. Neha Patil', email: 'neha.patil@mce.edu', department: 'Artificial Intelligence and Machine Learning' },
-  { name: 'Dr. Shankar Iyer', email: 'shankar.iyer@mce.edu', department: 'Electrical & Electronics Engineering' },
-  { name: 'Dr. Ritu Sharma', email: 'ritu.sharma@mce.edu', department: 'Robotics & AI Engineering' },
-];
-
-const departments = [
-  'All Departments',
-  'Computer Science Engineering',
-  'Computer Science & Business System',
-  'Artificial Intelligence and Machine Learning',
-  'Electrical & Electronics Engineering',
-  'Electronics & Communication Engineering',
-  'VLSI Engineering',
-  'Mechanical Engineering',
-  'Robotics & AI Engineering',
-  'Civil Engineering',
-  'Physics',
-  'Chemistry',
-  'Mathematics',
-];
+import { projectId, publicAnonKey } from '/utils/supabase/info';
 
 export default function GuideSelection() {
   const navigate = useNavigate();
@@ -49,6 +10,9 @@ export default function GuideSelection() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [guides, setGuides] = useState<Guide[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Redirect if team not completed (navigation guard)
   useEffect(() => {
@@ -57,8 +21,50 @@ export default function GuideSelection() {
     }
   }, [teamLeader, teamMembers, navigate]);
 
+  // Fetch guides from backend
+  useEffect(() => {
+    const fetchGuides = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/make-server-fdaa97b0/guides`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${publicAnonKey}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to fetch guides');
+        }
+
+        setGuides(data.guides);
+      } catch (err) {
+        console.error('Error fetching guides:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load guides');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGuides();
+  }, []);
+
+  // Get unique departments from guides
+  const departments = [
+    'All Departments',
+    ...Array.from(new Set(guides.map(g => g.department))).sort()
+  ];
+
   // Filter guides by search query and department
-  const filteredGuides = mockGuides.filter((guide) => {
+  const filteredGuides = guides.filter((guide) => {
     const matchesSearch = 
       guide.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       guide.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -102,110 +108,131 @@ export default function GuideSelection() {
           Select a Guide
         </p>
 
-        {/* Search Bar */}
-        <div className="mt-8 relative">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#999999]" size={20} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Name or Email..."
-            className="w-full h-[48px] bg-white border border-[#3b3b3b] rounded-[15px] pl-[50px] pr-5 font-['Cabin',sans-serif] text-[15px] text-[#171717] placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#3b3b3b]"
-          />
-        </div>
+        {/* Error Message */}
+        {error && (
+          <div className="mt-6 p-4 bg-red-100 border border-red-400 rounded-[12px]">
+            <p className="font-['Inter',sans-serif] text-[13px] text-red-700 leading-[18px]">
+              {error}
+            </p>
+          </div>
+        )}
 
-        {/* Department Filter */}
-        <div className="mt-4 relative">
-          <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="relative w-full h-[48px] bg-[#3b3b3b] rounded-[15px] px-6 flex items-center justify-between font-['Cabin',sans-serif] font-normal text-[#e9e9e9] text-[15px]"
-          >
-            <span className="truncate pr-8">{selectedDepartment}</span>
-            <ChevronLeft 
-              className="absolute right-6 text-[#e9e9e9]" 
-              size={20}
-              style={{ 
-                transform: isFilterOpen ? 'rotate(-90deg)' : 'rotate(90deg)',
-                transition: 'transform 0.2s'
-              }}
-            />
-          </button>
-          
-          {/* Dropdown Menu */}
-          {isFilterOpen && (
-            <div className="absolute z-10 w-full mt-2 bg-white border border-[#3b3b3b] rounded-[15px] overflow-hidden shadow-lg max-h-[300px] overflow-y-auto">
-              {departments.map((dept, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setSelectedDepartment(dept);
-                    setIsFilterOpen(false);
-                  }}
-                  className={`w-full px-6 py-3 text-left font-['Cabin',sans-serif] text-[15px] hover:bg-[#e9e9e9] transition-colors ${
-                    selectedDepartment === dept ? 'bg-[#f5f5f5] text-[#171717] font-semibold' : 'text-[#171717]'
-                  }`}
-                >
-                  {dept}
-                </button>
-              ))}
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="mt-12 text-center">
+            <p className="font-['Cabin',sans-serif] text-[16px] text-[#999999]">
+              Loading guides...
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Search Bar */}
+            <div className="mt-8 relative">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#999999]" size={20} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by Name..."
+                className="w-full h-[48px] bg-white border border-[#3b3b3b] rounded-[15px] pl-[50px] pr-5 font-['Cabin',sans-serif] text-[15px] text-[#171717] placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#3b3b3b]"
+              />
             </div>
-          )}
-        </div>
 
-        {/* Results Count */}
-        <p className="mt-6 font-['Inter',sans-serif] font-semibold text-[13px] text-[#999999]">
-          {filteredGuides.length} Guide{filteredGuides.length !== 1 ? 's' : ''} Found
-        </p>
-
-        {/* Guide Cards */}
-        <div className="mt-5 space-y-6">
-          {filteredGuides.length > 0 ? (
-            filteredGuides.map((guide, index) => (
-              <div
-                key={index}
-                className="relative min-h-[140px] w-full border border-[#3b3b3b] rounded-[15px] p-6"
+            {/* Department Filter */}
+            <div className="mt-4 relative">
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="relative w-full h-[48px] bg-[#3b3b3b] rounded-[15px] px-6 flex items-center justify-between font-['Cabin',sans-serif] font-normal text-[#e9e9e9] text-[15px]"
               >
-                <div className="space-y-3 pr-[100px]">
-                  <div>
-                    <p className="font-['Inter',sans-serif] font-semibold text-[13px] text-[#171717]">
-                      Name
-                    </p>
-                    <p className="font-['Cabin',sans-serif] text-[15px] text-[#171717] mt-1 break-words">
-                      {guide.name}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-['Inter',sans-serif] font-semibold text-[13px] text-[#171717]">
-                      Email
-                    </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-1 break-words">
-                      {guide.email}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#999999]">
-                      {guide.department}
-                    </p>
-                  </div>
+                <span className="truncate pr-8">{selectedDepartment}</span>
+                <ChevronLeft 
+                  className="absolute right-6 text-[#e9e9e9]" 
+                  size={20}
+                  style={{ 
+                    transform: isFilterOpen ? 'rotate(-90deg)' : 'rotate(90deg)',
+                    transition: 'transform 0.2s'
+                  }}
+                />
+              </button>
+              
+              {/* Dropdown Menu */}
+              {isFilterOpen && (
+                <div className="absolute z-10 w-full mt-2 bg-white border border-[#3b3b3b] rounded-[15px] overflow-hidden shadow-lg max-h-[300px] overflow-y-auto">
+                  {departments.map((dept, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSelectedDepartment(dept);
+                        setIsFilterOpen(false);
+                      }}
+                      className={`w-full px-6 py-3 text-left font-['Cabin',sans-serif] text-[15px] hover:bg-[#e9e9e9] transition-colors ${
+                        selectedDepartment === dept ? 'bg-[#f5f5f5] text-[#171717] font-semibold' : 'text-[#171717]'
+                      }`}
+                    >
+                      {dept}
+                    </button>
+                  ))}
                 </div>
-                
-                {/* Select Button */}
-                <button
-                  onClick={() => handleGuideSelect(guide)}
-                  className="absolute right-6 bottom-6 w-[90px] h-[32px] bg-black rounded-[10px] flex items-center justify-center font-['Inter',sans-serif] font-semibold text-[#e9e9e9] text-[13px] hover:bg-gray-800 transition-colors"
-                >
-                  Select
-                </button>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <p className="font-['Cabin',sans-serif] text-[16px] text-[#999999]">
-                No guides found matching your search
-              </p>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Results Count */}
+            <p className="mt-6 font-['Inter',sans-serif] font-semibold text-[13px] text-[#999999]">
+              {filteredGuides.length} Guide{filteredGuides.length !== 1 ? 's' : ''} Found
+            </p>
+
+            {/* Guide Cards */}
+            <div className="mt-5 space-y-6">
+              {filteredGuides.length > 0 ? (
+                filteredGuides.map((guide, index) => (
+                  <div
+                    key={index}
+                    className={`relative min-h-[100px] w-full border rounded-[15px] p-6 ${
+                      guide.available === false 
+                        ? 'border-[#999999] bg-[#f5f5f5] opacity-60' 
+                        : 'border-[#3b3b3b]'
+                    }`}
+                  >
+                    <div className="space-y-3 pr-[100px]">
+                      <div>
+                        <p className="font-['Inter',sans-serif] font-semibold text-[13px] text-[#171717]">
+                          Name
+                        </p>
+                        <p className="font-['Cabin',sans-serif] text-[15px] text-[#171717] mt-1 break-words">
+                          {guide.name}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#999999]">
+                          {guide.department}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Select Button */}
+                    <button
+                      onClick={() => handleGuideSelect(guide)}
+                      disabled={guide.available === false}
+                      className={`absolute right-6 bottom-6 w-[90px] h-[32px] rounded-[10px] flex items-center justify-center font-['Inter',sans-serif] font-semibold text-[13px] transition-colors ${
+                        guide.available === false
+                          ? 'bg-[#cccccc] text-[#666666] cursor-not-allowed'
+                          : 'bg-black text-[#e9e9e9] hover:bg-gray-800'
+                      }`}
+                    >
+                      {guide.available === false ? 'Full' : 'Select'}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <p className="font-['Cabin',sans-serif] text-[16px] text-[#999999]">
+                    No guides found matching your search
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

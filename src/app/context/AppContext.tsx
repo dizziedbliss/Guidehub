@@ -2,7 +2,6 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 
 export interface TeamMember {
   usn: string;
-  dob: string;
   name?: string;
   stream?: string;
   section?: string;
@@ -12,6 +11,10 @@ export interface Guide {
   name: string;
   email: string;
   department: string;
+  currentTeams?: number;
+  maxCapacity?: number;
+  available?: boolean;
+  remainingSlots?: number;
 }
 
 interface AppContextType {

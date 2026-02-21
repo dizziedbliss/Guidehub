@@ -21,7 +21,7 @@ export function mapBranchToStream(branch: string): string {
     'EC': 'Electronics Engineering',
     'VL': 'Electronics Engineering',
     'ME': 'Mechanical Engineering',
-    'RB': 'Mechanical Engineering',
+    'RI': 'Mechanical Engineering',
     'CV': 'Civil Engineering',
   };
   return streamMap[branch] || 'Unknown';
@@ -34,18 +34,4 @@ export function mapBranchToStream(branch: string): string {
 export function validateUSN(usn: string): boolean {
   const usnRegex = /^4MC\d{2}[A-Z]{2}\d{3}$/;
   return usnRegex.test(usn);
-}
-
-/**
- * Validate DOB format: DDMMYY
- * Example: 150203
- */
-export function validateDOB(dob: string): boolean {
-  const dobRegex = /^\d{6}$/;
-  if (!dobRegex.test(dob)) return false;
-  
-  const day = parseInt(dob.substring(0, 2));
-  const month = parseInt(dob.substring(2, 4));
-  
-  return day >= 1 && day <= 31 && month >= 1 && month <= 12;
 }

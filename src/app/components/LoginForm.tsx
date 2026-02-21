@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
-import { validateUSN, validateDOB } from '../utils/helpers';
+import { validateUSN } from '../utils/helpers';
 
 export default function LoginForm() {
   const [seatNumber, setSeatNumber] = useState('');
-  const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -26,15 +25,8 @@ export default function LoginForm() {
       return;
     }
     
-    // Validate DOB format
-    if (!validateDOB(password)) {
-      setErrorMessage('Invalid DOB format! Must be: DDMMYY (e.g., 150203 for 15th Feb 2003)');
-      setIsLoading(false);
-      return;
-    }
-    
     try {
-      // Call backend API to verify student
+      // Call backend API to verify student (USN only)
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-fdaa97b0/verify-student`,
         {
@@ -45,7 +37,6 @@ export default function LoginForm() {
           },
           body: JSON.stringify({
             usn: trimmedUSN,
-            dob: password,
           }),
         }
       );
@@ -56,7 +47,7 @@ export default function LoginForm() {
         if (data.inTeam) {
           setErrorMessage('You are already part of a team! You cannot register again.');
         } else {
-          setErrorMessage(data.error || 'Invalid USN or Date of Birth. Please check your credentials.');
+          setErrorMessage(data.error || 'Invalid USN. Please check your credentials.');
         }
         setIsLoading(false);
         return;
@@ -67,7 +58,6 @@ export default function LoginForm() {
       // Set team leader with verified student data
       setTeamLeader({
         usn: studentData.usn,
-        dob: password,
         name: studentData.name,
         stream: studentData.stream,
         section: studentData.section,
@@ -95,7 +85,7 @@ export default function LoginForm() {
 
         {/* Subtitle */}
         <p className="mt-6 font-['Cabin',sans-serif] font-normal leading-[36px] sm:leading-[44px] text-[#171717] text-[20px] sm:text-[24px]">
-          Team and Guide Selection
+          Create Your Team
         </p>
 
         {/* Team Leader Notice */}
@@ -125,31 +115,6 @@ export default function LoginForm() {
               className="w-full h-[44px] border border-black rounded-[15px] px-5 bg-transparent focus:outline-none focus:ring-2 focus:ring-black text-[15px]"
               required
               placeholder="4MCXXYYZZZ"
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Password Field */}
-          <div className="w-full mb-10">
-            <div className="flex flex-wrap items-center gap-2 mb-[14px]">
-              <label className="font-['Inter',sans-serif] font-semibold text-[#171717] text-[13px]">
-                Password
-              </label>
-              <span className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#999999]">
-                Date of Birth in DDMMYY Format
-              </span>
-            </div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setErrorMessage('');
-              }}
-              placeholder="DDMMYY"
-              maxLength={6}
-              className="w-full h-[44px] border border-black rounded-[15px] px-5 bg-transparent focus:outline-none focus:ring-2 focus:ring-black text-[15px]"
-              required
               disabled={isLoading}
             />
           </div>

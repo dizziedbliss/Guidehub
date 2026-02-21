@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { useAppContext, TeamMember } from '../context/AppContext';
 import { ChevronLeft, Pencil } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
-import { validateUSN, validateDOB } from '../utils/helpers';
+import { validateUSN } from '../utils/helpers';
 
 export default function TeamSelection() {
   const navigate = useNavigate();
@@ -12,7 +12,6 @@ export default function TeamSelection() {
   const [verifiedMembers, setVerifiedMembers] = useState<TeamMember[]>(teamMembers);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [tempUsn, setTempUsn] = useState('');
-  const [tempDob, setTempDob] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -29,20 +28,14 @@ export default function TeamSelection() {
     
     const trimmedUSN = tempUsn.trim().toUpperCase();
     
-    if (!trimmedUSN || !tempDob) {
-      setErrorMessage('Please enter both USN and DOB.');
+    if (!trimmedUSN) {
+      setErrorMessage('Please enter USN.');
       setIsVerifying(false);
       return;
     }
 
     if (!validateUSN(trimmedUSN)) {
       setErrorMessage('Invalid USN format! Must be: 4MC{year}{branch}{roll} (e.g., 4MC23CS003)');
-      setIsVerifying(false);
-      return;
-    }
-
-    if (!validateDOB(tempDob)) {
-      setErrorMessage('Invalid DOB format! Must be: DDMMYY (e.g., 150203 for 15th Feb 2003)');
       setIsVerifying(false);
       return;
     }
@@ -66,7 +59,7 @@ export default function TeamSelection() {
     }
 
     try {
-      // Call backend API to verify student
+      // Call backend API to verify student (USN only)
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-fdaa97b0/verify-student`,
         {
@@ -77,7 +70,6 @@ export default function TeamSelection() {
           },
           body: JSON.stringify({
             usn: trimmedUSN,
-            dob: tempDob,
           }),
         }
       );
@@ -88,7 +80,7 @@ export default function TeamSelection() {
         if (data.inTeam) {
           setErrorMessage('This student is already part of another team!');
         } else {
-          setErrorMessage(data.error || 'Invalid USN or Date of Birth. Please check credentials.');
+          setErrorMessage(data.error || 'Invalid USN. Please check credentials.');
         }
         setIsVerifying(false);
         return;
@@ -98,7 +90,6 @@ export default function TeamSelection() {
 
       const verifiedMember: TeamMember = {
         usn: studentData.usn,
-        dob: tempDob,
         name: studentData.name,
         stream: studentData.stream,
         section: studentData.section,
@@ -116,7 +107,6 @@ export default function TeamSelection() {
       
       setEditingIndex(null);
       setTempUsn('');
-      setTempDob('');
     } catch (err) {
       console.error('Verification error:', err);
       setErrorMessage('Network error. Please check your connection and try again.');
@@ -128,7 +118,6 @@ export default function TeamSelection() {
   const handleEdit = (index: number) => {
     setEditingIndex(index);
     setTempUsn(verifiedMembers[index].usn);
-    setTempDob(verifiedMembers[index].dob);
     setErrorMessage('');
   };
 
@@ -141,7 +130,6 @@ export default function TeamSelection() {
   const handleCancelEdit = () => {
     setEditingIndex(null);
     setTempUsn('');
-    setTempDob('');
     setErrorMessage('');
   };
 
@@ -153,7 +141,7 @@ export default function TeamSelection() {
       return;
     }
 
-    const validMembers = verifiedMembers.filter(m => m.usn && m.dob);
+    const validMembers = verifiedMembers.filter(m => m.usn);
     
     // Check for at least 2 different streams including team leader
     const allTeamMembers = teamLeader ? [teamLeader, ...validMembers] : validMembers;
@@ -260,23 +248,6 @@ export default function TeamSelection() {
                 }}
                 className="w-full h-[44px] border border-black rounded-[15px] px-5 bg-transparent focus:outline-none focus:ring-2 focus:ring-black text-[15px]"
                 placeholder="4MCXXYYZZZ"
-                disabled={(verifiedMembers.length >= 5 && editingIndex === null) || isVerifying}
-              />
-            </div>
-            <div>
-              <label className="block font-['Inter',sans-serif] font-semibold text-[13px] text-[#171717] mb-3">
-                Date of Birth (DDMMYY)
-              </label>
-              <input
-                type="password"
-                value={tempDob}
-                onChange={(e) => {
-                  setTempDob(e.target.value);
-                  setErrorMessage('');
-                }}
-                placeholder="DDMMYY"
-                maxLength={6}
-                className="w-full h-[44px] border border-black rounded-[15px] px-5 bg-transparent focus:outline-none focus:ring-2 focus:ring-black text-[15px]"
                 disabled={(verifiedMembers.length >= 5 && editingIndex === null) || isVerifying}
               />
             </div>

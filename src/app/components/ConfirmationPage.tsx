@@ -149,14 +149,6 @@ export default function ConfirmationPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="font-['Inter',sans-serif] font-semibold text-[13px] text-[#171717]">
-                      email
-                    </p>
-                    <p className="font-['Cabin',sans-serif] text-[14px] text-[#171717] mt-1 break-words">
-                      {selectedGuide.email}
-                    </p>
-                  </div>
-                  <div>
                     <p className="font-['Inter',sans-serif] font-semibold text-[12px] text-[#999999]">
                       {selectedGuide.department}
                     </p>
