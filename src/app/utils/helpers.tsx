@@ -15,18 +15,36 @@ export function extractBranchCode(usn: string): string {
 export function mapBranchToStream(branch: string): string {
   const normalizedBranch = branch.trim().toUpperCase();
   const streamMap: Record<string, string> = {
-    'CS': 'Computer Science Engineering',
-    'CI': 'Computer Science Engineering',
-    'CB': 'Computer Science Engineering',
-    'CV': 'Civil Engineering',
-    'ME': 'Mechanical Engineering',
-    'RI': 'Mechanical Engineering',
-    'RB': 'Mechanical Engineering',
-    'EE': 'Electronics Engineering',
-    'EC': 'Electronics Engineering',
-    'VL': 'Electronics Engineering',
+    'CS': 'Computer Science Stream',
+    'CI': 'Computer Science Stream',
+    'CB': 'Computer Science Stream',
+    'CV': 'Civil Engineering Stream',
+    'ME': 'Mechanical Stream',
+    'RI': 'Mechanical Stream',
+    'EE': 'Electronics Stream',
+    'EC': 'Electronics Stream',
+    'VL': 'Electronics Stream',
   };
   return streamMap[normalizedBranch] || 'Unknown';
+}
+
+/**
+ * Map branch code to full branch name
+ */
+export function BranchCodeToBranch(branch: string): string {
+  const normalizedBranch = branch.trim().toUpperCase();
+  const branchMap: Record<string, string> = {
+    'CS': 'Computer Science and Engineering',
+    'CI': 'Computer Science and Engineering (AIML)',
+    'CB': 'Computer Science and Business Systems (CSBS)',
+    'CV': 'Civil Engineering',
+    'ME': 'Mechanical Engineering',
+    'RI': 'Robotucs & Artificial Intelligence',
+    'EE': 'Electrical and Electronics Engineering',
+    'EC': 'Electronics and Communication Engineering',
+    'VL': 'VLSI Design',
+  };
+  return branchMap[normalizedBranch] || 'Unknown';
 }
 
 /**

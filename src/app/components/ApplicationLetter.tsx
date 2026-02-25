@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { ChevronLeft } from 'lucide-react';
+import { BranchCodeToBranch, extractBranchCode } from '../utils/helpers';
 
 export default function ApplicationLetter() {
   const navigate = useNavigate();
@@ -135,17 +136,17 @@ export default function ApplicationLetter() {
                       </p>
                     </div>
 
-                    {/* Stream and Section */}
+                    {/* Branch and Section */}
                     <div className="flex-shrink-0 w-[150px]">
                       <p className="font-['Inter',sans-serif] text-[#999999] text-[7px] uppercase tracking-wide mb-[3px]">
-                        Stream
+                        Branch
                       </p>
                       <div className="flex flex-col gap-1">
                         <span className="inline-block px-[8px] py-[2px] bg-white border border-[#171717] rounded-[5px] font-['Inter',sans-serif] text-[9px] text-[#171717] font-medium w-fit">
                           Sec {member.section || 'N/A'}
                         </span>
                         <span className="font-['Inter',sans-serif] text-[#3b3b3b] text-[8px] leading-[10px]">
-                          {member.stream}
+                          {BranchCodeToBranch(extractBranchCode(member.usn))}
                         </span>
                       </div>
                     </div>

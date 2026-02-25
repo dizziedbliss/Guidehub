@@ -156,7 +156,7 @@ export default function TeamSelection() {
     const streams = new Set(allTeamMembers.map(getResolvedStream).filter(stream => stream && stream !== 'Unknown'));
     
     if (streams.size < 2) {
-      setErrorMessage('Team must have members from at least 2 different streams! Available streams: Computer Science Engineering, Electronics Engineering, Mechanical Engineering, Civil Engineering');
+      setErrorMessage('Team must have members from at least 2 different streams! Available streams: Computer Science Stream, Electronics Stream, Mechanical Stream, Civil Engineering Stream');
       return;
     }
     
