@@ -222,7 +222,7 @@ export default function ApplicationLetter() {
               
               <div className="bg-[#f9f9f9] border border-[#e0e0e0] rounded-[8px] p-[10px]">
                 <p className="font-['Inter',sans-serif] text-[#3b3b3b] text-[11px] leading-[18px]">
-                  We, the undersigned members, hereby declare that our team satisfies the interdisciplinary requirement with members from {streams.size} different stream(s), we have obtained consent from {selectedGuide?.name || 'N/A'} to supervise our project, we agree to comply with all regulations governing the Interdisciplinary Project programme, and the team lead, {teamLeader?.name || 'N/A'}, will serve as the primary point of contact for all official communications.
+                  We, the aforesigned members, hereby declare that our team satisfies the interdisciplinary requirement with members from {streams.size} different stream(s), we have obtained consent from {selectedGuide?.name || 'N/A'} to supervise our project, we agree to comply with all regulations governing the Interdisciplinary Project programme, and the team lead, {teamLeader?.name || 'N/A'}, will serve as the primary point of contact for all official communications.
                 </p>
               </div>
             </div>
@@ -231,7 +231,7 @@ export default function ApplicationLetter() {
           {/* Footer */}
           <div className="border-t border-[#e0e0e0] px-[25px] py-[8px] print:px-[20mm] print:py-[3mm]">
             <p className="font-['Inter',sans-serif] text-[#999999] text-[9px] text-center">
-              Office of Academic Affairs • Interdisciplinary Project Programme • Academic Year 2025-26
+              Office of First Year & Dean (Corporate Affairs) • Interdisciplinary Project Programme • Academic Year 2025-26
             </p>
           </div>
         </div>
