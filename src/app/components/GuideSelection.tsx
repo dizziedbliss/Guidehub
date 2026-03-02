@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext, Guide } from '../context/AppContext';
 import { ChevronLeft, Search } from 'lucide-react';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
 export default function GuideSelection() {
   const navigate = useNavigate();

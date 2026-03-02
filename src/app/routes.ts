@@ -4,6 +4,7 @@ import TeamSelection from './components/TeamSelection';
 import GuideSelection from './components/GuideSelection';
 import ConfirmationPage from './components/ConfirmationPage';
 import ApplicationLetter from './components/ApplicationLetter';
+import SignedLetterUpload from './components/SignedLetterUpload';
 import ErrorBoundary from './components/ErrorBoundary';
 
 export const router = createBrowserRouter([
@@ -30,6 +31,11 @@ export const router = createBrowserRouter([
   {
     path: '/application',
     Component: ApplicationLetter,
+    ErrorBoundary: ErrorBoundary,
+  },
+  {
+    path: '/upload-signed-letter',
+    Component: SignedLetterUpload,
     ErrorBoundary: ErrorBoundary,
   },
 ]);

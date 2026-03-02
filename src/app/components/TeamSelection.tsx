@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext, TeamMember } from '../context/AppContext';
 import { ChevronLeft, Pencil } from 'lucide-react';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 import { extractBranchCode, mapBranchToStream, validateUSN } from '../utils/helpers';
 
 export default function TeamSelection() {

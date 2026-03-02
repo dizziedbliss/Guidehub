@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
 export default function ConfirmationPage() {
   const navigate = useNavigate();
