@@ -81,28 +81,35 @@ export default function SignedLetterUpload() {
     setUploadMessage(null);
 
     try {
-      const safeFileName = selectedFile.name
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9.\-_]/g, '');
-
-      const filePath = `${teamId}/${Date.now()}-${safeFileName}`;
-      const uploadUrl = `https://${projectId}.supabase.co/storage/v1/object/signed-letters/${filePath}`;
+      const uploadUrl = `https://${projectId}.supabase.co/functions/v1/make-server-fdaa97b0/upload-signed-letter`;
+      const formData = new FormData();
+      formData.append('teamId', teamId);
+      formData.append('leaderUsn', teamLeader.usn);
+      formData.append('file', selectedFile);
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${publicAnonKey}`,
           apikey: publicAnonKey,
-          'x-upsert': 'true',
-          'Content-Type': selectedFile.type,
         },
-        body: selectedFile,
+        body: formData,
       });
 
       if (!response.ok) {
-        const responseText = await response.text();
-        throw new Error(responseText || 'Upload failed. Please try again.');
+        let errorMessage = 'Upload failed. Please try again.';
+        try {
+          const errorPayload = await response.json();
+          if (errorPayload?.error) {
+            errorMessage = errorPayload.error;
+          }
+        } catch {
+          const responseText = await response.text();
+          if (responseText) {
+            errorMessage = responseText;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       setUploadMessage('Signed letter uploaded successfully. Your application is now complete.');
@@ -113,6 +120,11 @@ export default function SignedLetterUpload() {
       }
     } catch (error) {
       console.error('Upload failed:', error);
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage.toLowerCase().includes('failed to fetch')) {
+        setUploadError('Unable to reach upload service. Please redeploy the server function and try again.');
+        return;
+      }
       setUploadError(
         error instanceof Error
           ? error.message

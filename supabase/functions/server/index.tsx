@@ -14,7 +14,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "apikey"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -516,6 +516,73 @@ app.post("/make-server-fdaa97b0/register-team", async (c) => {
       success: false, 
       error: 'Failed to register team',
       details: error.message 
+    }, 500);
+  }
+});
+
+// Upload signed letter via service role (avoids client-side storage RLS failures)
+app.post("/make-server-fdaa97b0/upload-signed-letter", async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const teamId = String(formData.get('teamId') || '').trim();
+    const leaderUsn = String(formData.get('leaderUsn') || '').trim().toUpperCase();
+    const file = formData.get('file');
+
+    if (!teamId || !leaderUsn) {
+      return c.json({ success: false, error: 'teamId and leaderUsn are required' }, 400);
+    }
+
+    if (!(file instanceof File)) {
+      return c.json({ success: false, error: 'File is required' }, 400);
+    }
+
+    const { data: teamRow, error: teamError } = await supabase
+      .from('teams')
+      .select('team_id,leader_usn')
+      .eq('team_id', teamId)
+      .maybeSingle();
+
+    if (teamError) {
+      console.error('Error validating team before signed-letter upload:', teamError);
+      return c.json({ success: false, error: 'Failed to validate team' }, 500);
+    }
+
+    if (!teamRow || String(teamRow.leader_usn).toUpperCase() !== leaderUsn) {
+      return c.json({ success: false, error: 'Unauthorized upload attempt for this team' }, 403);
+    }
+
+    const safeFileName = file.name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9.\-_]/g, '');
+
+    const filePath = `${teamId}/${Date.now()}-${safeFileName}`;
+
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('signed-letters')
+      .upload(filePath, file, {
+        contentType: file.type || 'application/octet-stream',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Signed letter upload failed:', uploadError);
+      return c.json({ success: false, error: uploadError.message || 'Upload failed' }, 500);
+    }
+
+    return c.json({
+      success: true,
+      path: uploadData?.path || filePath,
+      message: 'Signed letter uploaded successfully',
+    });
+  } catch (error) {
+    console.error('Error uploading signed letter:', error);
+    const errorDetails = error instanceof Error ? error.message : String(error);
+    return c.json({
+      success: false,
+      error: 'Failed to upload signed letter',
+      details: errorDetails,
     }, 500);
   }
 });
