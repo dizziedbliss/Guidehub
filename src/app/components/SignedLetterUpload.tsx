@@ -91,7 +91,6 @@ export default function SignedLetterUpload() {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${publicAnonKey}`,
-          apikey: publicAnonKey,
         },
         body: formData,
       });
