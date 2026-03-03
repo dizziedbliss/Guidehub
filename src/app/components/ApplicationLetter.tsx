@@ -65,13 +65,13 @@ export default function ApplicationLetter() {
 
         <div className="mb-4 rounded-[12px] border border-[#171717] bg-white px-4 py-3">
           <p className="font-['Inter',sans-serif] text-[12px] text-[#171717] leading-[18px]">
-            <span className="font-semibold">Important:</span> Application is completed only after upload of signed letter. Login with team leader USN and upload the signed form picture.
+            <span className="font-semibold">Important:</span> Application is completed only after upload of signed letter. Login with team leader USN and upload the signed form.
           </p>
           <button
             onClick={() => navigate('/upload-signed-letter')}
             className="mt-3 h-[34px] px-4 bg-black rounded-[10px] font-['Inter',sans-serif] font-semibold text-[#e9e9e9] text-[12px] hover:bg-gray-800 transition-colors active:scale-95"
           >
-            Upload Signed Letter Picture
+            Upload Signed Form
           </button>
         </div>
       </div>
